@@ -1,0 +1,56 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 222.2 47.4% 4%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 47.4% 6%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 47.4% 8%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 142 71% 45%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 12%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 142 71% 35%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 217.2 32.6% 20%;
+    --input: 217.2 32.6% 20%;
+    --ring: 142 71% 45%;
+    --radius: 12px;
+  }
+
+  .dark {
+    --background: 222.2 47.4% 4%;
+    --foreground: 210 40% 98%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    min-height: 100vh;
+    background-image:
+      radial-gradient(circle at 20% 20%, rgba(52, 211, 153, 0.12), transparent 25%),
+      radial-gradient(circle at 80% 0%, rgba(59, 130, 246, 0.12), transparent 20%),
+      linear-gradient(180deg, rgba(17, 24, 39, 0.8), rgba(17, 24, 39, 0.95));
+  }
+
+  a {
+    @apply text-primary transition-colors hover:text-primary/80;
+  }
+
+  input,
+  select,
+  textarea {
+    @apply focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background;
+  }
+}

@@ -1,0 +1,1 @@
+Place your school logo at public/logo.png (PNG recommended).
