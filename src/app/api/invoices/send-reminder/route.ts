@@ -8,7 +8,8 @@ const resend = new Resend(process.env.RESEND_API_KEY!);
 
 export async function POST(req: Request) {
   const { invoiceId } = await req.json();
-  const accessToken = cookies().get('sb-access-token')?.value;
+  const cookieStore = await cookies();
+  const accessToken = cookieStore.get('sb-access-token')?.value;
   if (!accessToken) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const { data: authUser, error: userError } = await supabaseAdmin.auth.getUser(accessToken);

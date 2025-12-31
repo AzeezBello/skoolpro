@@ -1,15 +1,16 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, type NextRequest } from 'next/server';
 import { cookies } from 'next/headers';
 import { supabaseAdmin } from '@/lib/supabaseServer';
 
-export async function POST(req: Request, { params }: { params: { id: string } }) {
-  const invoiceId = params.id;
+export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
+  const { id: invoiceId } = await ctx.params;
   const body = await req.json();
   const amount = Number(body.amount || 0);
   const method = body.method || 'manual';
   const note = body.note || '';
 
-  const accessToken = cookies().get('sb-access-token')?.value;
+  const cookieStore = await cookies();
+  const accessToken = cookieStore.get('sb-access-token')?.value;
   if (!accessToken) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const { data: authUser, error: userError } = await supabaseAdmin.auth.getUser(accessToken);

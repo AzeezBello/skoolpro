@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
-import "jspdf-autotable";
+import autoTable from "jspdf-autotable";
 import toast from "react-hot-toast";
 
 export default function GradesReport() {
@@ -54,7 +54,7 @@ export default function GradesReport() {
     const doc = new jsPDF();
     doc.text("Grades Report", 14, 15);
     const tableData = records.map((r) => [r.subject, r.score, r.students?.full_name, r.term]);
-    doc.autoTable({
+    autoTable(doc, {
       head: [["Subject", "Score", "Student", "Term"]],
       body: tableData,
       startY: 20,

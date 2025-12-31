@@ -14,6 +14,7 @@ interface ClassItem {
   name: string;
   teacher_id?: string | null;
   created_at?: string;
+  teachers?: { full_name?: string } | null;
 }
 
 export default function ClassesPage() {

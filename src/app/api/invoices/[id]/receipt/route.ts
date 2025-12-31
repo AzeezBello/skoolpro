@@ -1,11 +1,11 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, type NextRequest } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseServer';
 import PDFDocument from 'pdfkit';
 import fs from 'fs';
 import path from 'path';
 
-export async function GET(_req: Request, { params }: { params: { id: string } }) {
-  const { id } = params;
+export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
+  const { id } = await ctx.params;
   const { data: invoice, error } = await supabaseAdmin.from('invoices')
     .select('id, reference, total_amount, amount_paid, status, created_at, student_id, fee_item_id')
     .eq('id', id).single();

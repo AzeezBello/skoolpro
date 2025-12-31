@@ -46,7 +46,7 @@ export default function AdminDashboard() {
     const attendanceRate = total > 0 ? Math.round((present / total) * 100) : 0;
 
     const { data: grades } = await supabase.from("grades").select("subject, score");
-    const grouped = grades?.reduce((acc, g) => {
+    const grouped = grades?.reduce<Record<string, number[]>>((acc, g: { subject: string; score: number }) => {
       acc[g.subject] = acc[g.subject] || [];
       acc[g.subject].push(g.score);
       return acc;

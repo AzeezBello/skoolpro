@@ -7,6 +7,7 @@ type Invoice = {
   id: string
   reference: string
   total_amount?: number
+  amount?: number
   amount_paid?: number
   balance?: number
   status: string

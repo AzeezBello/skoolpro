@@ -45,7 +45,8 @@ export default function TeacherDashboard() {
     }
 
     setTeacher(teacherData);
-    setStudents(teacherData?.classes?.students || []);
+    const classStudents = teacherData?.classes?.[0]?.students || [];
+    setStudents(classStudents);
     setDate(new Date().toISOString().split("T")[0]);
   };
 
@@ -81,7 +82,7 @@ export default function TeacherDashboard() {
           <p className="text-lg text-gray-300 mb-4">
             Welcome, {teacher.full_name} ({teacher.subject})
           </p>
-          <p className="text-gray-400 mb-6">Class: {teacher.classes?.name || "Unassigned"}</p>
+          <p className="text-gray-400 mb-6">Class: {teacher.classes?.[0]?.name || "Unassigned"}</p>
 
           <h2 className="text-2xl font-semibold mb-2">Mark Attendance</h2>
           <table className="w-full mb-6">
