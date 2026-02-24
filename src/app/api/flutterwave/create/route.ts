@@ -1,12 +1,17 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const SUPABASE_SERVICE = process.env.SUPABASE_SERVICE_KEY!;
-const FLW_SECRET = process.env.FLW_SECRET_KEY!;
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL!;
+function getRequiredEnv(name: string) {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`${name} is required.`);
+  }
+  return value;
+}
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE);
+function getSupabaseServiceClient() {
+  return createClient(getRequiredEnv("NEXT_PUBLIC_SUPABASE_URL"), getRequiredEnv("SUPABASE_SERVICE_KEY"));
+}
 
 function normalizeRequestedAmount(rawAmount: unknown, balance: number, unit?: string) {
   const parsed = Number(rawAmount);
@@ -21,6 +26,10 @@ function normalizeRequestedAmount(rawAmount: unknown, balance: number, unit?: st
 
 export async function POST(req: Request) {
   try {
+    const supabase = getSupabaseServiceClient();
+    const flutterwaveSecret = getRequiredEnv("FLW_SECRET_KEY");
+    const baseUrl = getRequiredEnv("NEXT_PUBLIC_BASE_URL");
+
     const payload = await req.json();
     const invoiceId = typeof payload.invoice_id === "string" ? payload.invoice_id : "";
     const providedEmail = typeof payload.email === "string" ? payload.email.trim() : "";
@@ -76,7 +85,7 @@ export async function POST(req: Request) {
       tx_ref: txRef,
       amount: requestedAmount,
       currency: "NGN",
-      redirect_url: `${BASE_URL}/payments/verify/flutterwave`,
+      redirect_url: `${baseUrl}/payments/verify/flutterwave`,
       customer: { email },
       meta: { invoice_id: invoiceId, amount_naira: requestedAmount },
     };
@@ -84,7 +93,7 @@ export async function POST(req: Request) {
     const response = await fetch("https://api.flutterwave.com/v3/payments", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${FLW_SECRET}`,
+        Authorization: `Bearer ${flutterwaveSecret}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify(requestBody),

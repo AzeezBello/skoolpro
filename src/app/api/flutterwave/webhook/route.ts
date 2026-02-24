@@ -2,13 +2,19 @@ import crypto from "crypto";
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const SUPABASE_SERVICE = process.env.SUPABASE_SERVICE_KEY!;
-const FLW_SECRET = process.env.FLW_SECRET_KEY!;
+function getRequiredEnv(name: string) {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`${name} is required.`);
+  }
+  return value;
+}
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE);
+function getSupabaseServiceClient() {
+  return createClient(getRequiredEnv("NEXT_PUBLIC_SUPABASE_URL"), getRequiredEnv("SUPABASE_SERVICE_KEY"));
+}
 
-async function applyInvoicePayment(invoiceId: string, amount: number, reference: string) {
+async function applyInvoicePayment(supabase: any, invoiceId: string, amount: number, reference: string) {
   const { data: invoice, error: invoiceError } = await supabase
     .from("invoices")
     .select("id, amount, total_amount, amount_paid, status, payment_history")
@@ -49,24 +55,27 @@ async function applyInvoicePayment(invoiceId: string, amount: number, reference:
     .eq("id", invoiceId);
 }
 
-function isValidWebhookSignature(raw: string, incomingHash: string) {
+function isValidWebhookSignature(raw: string, incomingHash: string, secret: string) {
   const configuredHash = process.env.FLW_WEBHOOK_SECRET_HASH || process.env.FLW_SECRET_HASH || "";
-  const computedHash = crypto.createHmac("sha256", FLW_SECRET).update(raw).digest("hex");
+  const computedHash = crypto.createHmac("sha256", secret).update(raw).digest("hex");
 
   if (!incomingHash) return false;
   if (configuredHash && incomingHash === configuredHash) return true;
   if (incomingHash === computedHash) return true;
-  if (incomingHash === FLW_SECRET) return true;
+  if (incomingHash === secret) return true;
 
   return false;
 }
 
 export async function POST(req: Request) {
   try {
+    const supabase = getSupabaseServiceClient();
+    const flutterwaveSecret = getRequiredEnv("FLW_SECRET_KEY");
+
     const raw = await req.text();
     const headerHash = req.headers.get("verif-hash") || "";
 
-    if (!isValidWebhookSignature(raw, headerHash)) {
+    if (!isValidWebhookSignature(raw, headerHash, flutterwaveSecret)) {
       return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
     }
 
@@ -123,7 +132,7 @@ export async function POST(req: Request) {
     }
 
     if (amountNaira > 0) {
-      await applyInvoicePayment(invoiceId, amountNaira, txRef);
+      await applyInvoicePayment(supabase, invoiceId, amountNaira, txRef);
     }
 
     return NextResponse.json({ ok: true });

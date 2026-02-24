@@ -2,13 +2,19 @@ import crypto from "crypto";
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const SUPABASE_SERVICE = process.env.SUPABASE_SERVICE_KEY!;
-const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY!;
+function getRequiredEnv(name: string) {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`${name} is required.`);
+  }
+  return value;
+}
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE);
+function getSupabaseServiceClient() {
+  return createClient(getRequiredEnv("NEXT_PUBLIC_SUPABASE_URL"), getRequiredEnv("SUPABASE_SERVICE_KEY"));
+}
 
-async function applyInvoicePayment(invoiceId: string, amount: number, reference: string) {
+async function applyInvoicePayment(supabase: any, invoiceId: string, amount: number, reference: string) {
   const { data: invoice, error: invoiceError } = await supabase
     .from("invoices")
     .select("id, amount, total_amount, amount_paid, status, payment_history")
@@ -50,17 +56,20 @@ async function applyInvoicePayment(invoiceId: string, amount: number, reference:
 }
 
 export async function POST(req: Request) {
-  const raw = await req.text();
-  const headerSignature = (req.headers.get("x-paystack-signature") || "").toString();
-  const expectedHash = crypto.createHmac("sha512", PAYSTACK_SECRET).update(raw).digest("hex");
-
-  if (!headerSignature || headerSignature !== expectedHash) {
-    return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
-  }
-
-  const event = JSON.parse(raw);
-
   try {
+    const supabase = getSupabaseServiceClient();
+    const paystackSecret = getRequiredEnv("PAYSTACK_SECRET_KEY");
+
+    const raw = await req.text();
+    const headerSignature = (req.headers.get("x-paystack-signature") || "").toString();
+    const expectedHash = crypto.createHmac("sha512", paystackSecret).update(raw).digest("hex");
+
+    if (!headerSignature || headerSignature !== expectedHash) {
+      return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+    }
+
+    const event = JSON.parse(raw);
+
     if (event.event === "charge.success" || event.event === "transaction.success") {
       const data = event.data || {};
       const reference = typeof data.reference === "string" ? data.reference : "";
@@ -109,7 +118,7 @@ export async function POST(req: Request) {
       }
 
       if (amountNaira > 0) {
-        await applyInvoicePayment(invoiceId, amountNaira, reference);
+        await applyInvoicePayment(supabase, invoiceId, amountNaira, reference);
       }
     }
 
