@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import toast from "react-hot-toast";
+import { authFetch } from "@/lib/client/authFetch";
 
 export default function ApplyPaymentModal({ invoice, onClose, onSuccess }: any) {
   const [amount, setAmount] = useState("");
@@ -17,25 +18,30 @@ export default function ApplyPaymentModal({ invoice, onClose, onSuccess }: any) 
       return;
     }
     if (numericAmount > balance) {
-      toast.error(`Amount exceeds remaining balance (₦${balance.toLocaleString()})`);
+      toast.error(`Amount exceeds remaining balance (NGN ${balance.toLocaleString()})`);
       return;
     }
 
     setLoading(true);
-    const res = await fetch(`/api/invoices/${invoice.id}/apply-payment`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ amount: numericAmount, method }),
-    });
-    const data = await res.json();
-    setLoading(false);
+    try {
+      const res = await authFetch(`/api/invoices/${invoice.id}/apply-payment`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount: numericAmount, method }),
+      });
+      const data = await res.json();
 
-    if (res.ok) {
-      toast.success("Payment recorded successfully.");
-      onSuccess();
-      onClose?.();
-    } else {
-      toast.error(data.error || "Failed to record payment.");
+      if (res.ok) {
+        toast.success("Payment recorded successfully.");
+        onSuccess();
+        onClose?.();
+      } else {
+        toast.error(data.error || "Failed to record payment.");
+      }
+    } catch {
+      toast.error("Failed to record payment.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -43,7 +49,7 @@ export default function ApplyPaymentModal({ invoice, onClose, onSuccess }: any) 
     <div className="w-[400px] rounded-md bg-white p-6 text-gray-900">
       <h2 className="mb-4 text-xl font-semibold">Apply Partial Payment</h2>
       <p className="mb-2 text-sm text-gray-600">
-        Remaining balance: <b>₦{(invoice.total_amount - invoice.amount_paid).toLocaleString()}</b>
+        Remaining balance: <b>NGN {(invoice.total_amount - invoice.amount_paid).toLocaleString()}</b>
       </p>
 
       <input

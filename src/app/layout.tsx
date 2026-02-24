@@ -1,6 +1,7 @@
 import "./globals.css";
 import { Toaster } from "react-hot-toast";
 import { Space_Grotesk } from "next/font/google";
+import { AuthSessionSync } from "@/components/AuthSessionSync";
 
 const fontSans = Space_Grotesk({
   subsets: ["latin"],
@@ -17,6 +18,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className="dark">
       <body className={`${fontSans.variable} font-sans min-h-screen bg-background text-foreground antialiased`}>
+        <AuthSessionSync />
         {children}
         <Toaster position="top-right" />
       </body>

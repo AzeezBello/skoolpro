@@ -1,11 +1,18 @@
-import { NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabaseServer';
+import { NextResponse, type NextRequest } from "next/server";
+import { supabaseAdmin } from "@/lib/supabaseServer";
+import { requirePublicApiAccess } from "@/lib/server/publicApi";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const access = requirePublicApiAccess(req);
+  if (!access.ok) return access.response;
+
   const { data, error } = await supabaseAdmin
-    .from('invoices')
-    .select('id, reference, total_amount, amount, amount_paid, status, due_date, student_id, payment_history, students(full_name, parent_email)')
-    .order('created_at', { ascending: false });
+    .from("invoices")
+    .select(
+      "id, reference, total_amount, amount, amount_paid, status, due_date, student_id, payment_history, students(full_name, parent_email)"
+    )
+    .order("created_at", { ascending: false })
+    .limit(200);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 

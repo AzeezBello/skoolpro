@@ -28,6 +28,12 @@ export default function LoginPage() {
       return;
     }
 
+    if (data.session?.access_token) {
+      document.cookie = `sb-access-token=${encodeURIComponent(
+        data.session.access_token
+      )}; path=/; max-age=3600; samesite=lax`;
+    }
+
     let destination = "/dashboard";
     const userId = data.user?.id;
     if (userId) {

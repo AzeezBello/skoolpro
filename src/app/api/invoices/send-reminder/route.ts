@@ -1,63 +1,81 @@
-import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { Resend } from 'resend';
-import { supabaseAdmin } from '@/lib/supabaseServer';
-import { paymentReminderTemplate } from '@/lib/emailTemplates/payment_reminder';
+import { NextResponse, type NextRequest } from "next/server";
+import { Resend } from "resend";
+import { paymentReminderTemplate } from "@/lib/emailTemplates/payment_reminder";
+import { requireRequestUser } from "@/lib/server/auth";
+import { supabaseAdmin } from "@/lib/supabaseServer";
+import { applyTenantFilter } from "@/lib/server/tenant";
 
-const resend = new Resend(process.env.RESEND_API_KEY!);
+const resendApiKey = process.env.RESEND_API_KEY;
+const fromEmail = process.env.FROM_EMAIL;
+const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_BASE_URL || "";
+const resend = resendApiKey ? new Resend(resendApiKey) : null;
 
-export async function POST(req: Request) {
-  const { invoiceId } = await req.json();
-  const cookieStore = await cookies();
-  const accessToken = cookieStore.get('sb-access-token')?.value;
-  if (!accessToken) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+export async function POST(req: NextRequest) {
+  const auth = await requireRequestUser(req, { roles: ["admin"] });
+  if (!auth.ok) return auth.response;
 
-  const { data: authUser, error: userError } = await supabaseAdmin.auth.getUser(accessToken);
-  if (userError || !authUser?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!resend || !fromEmail) {
+    return NextResponse.json({ error: "Email provider is not configured" }, { status: 500 });
+  }
 
-  const userId = authUser.user.id;
-  const { data: profile } = await supabaseAdmin.from('profiles').select('role').eq('id', userId).maybeSingle();
-  if (!profile || profile.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  const payload = await req.json().catch(() => null);
+  const invoiceId = typeof payload?.invoiceId === "string" ? payload.invoiceId : "";
+  if (!invoiceId) {
+    return NextResponse.json({ error: "invoiceId is required" }, { status: 400 });
+  }
 
-  const { data: inv } = await supabaseAdmin
-    .from('invoices')
-    .select('id, reference, total_amount, amount, amount_paid, due_date, student_id, parent_email')
-    .eq('id', invoiceId)
-    .single();
-  if (!inv) return NextResponse.json({ error: 'Invoice not found' }, { status: 404 });
+  let invoiceQuery = supabaseAdmin
+    .from("invoices")
+    .select("id, reference, total_amount, amount, amount_paid, due_date, student_id, parent_email")
+    .eq("id", invoiceId);
+  invoiceQuery = applyTenantFilter(invoiceQuery, auth.ctx.tenant);
 
-  const { data: student } = await supabaseAdmin
-    .from('students')
-    .select('full_name, email')
-    .eq('id', inv.student_id)
-    .single();
+  const { data: invoice, error: invoiceError } = await invoiceQuery.maybeSingle();
+  if (invoiceError || !invoice) {
+    return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
+  }
 
-  const to = inv.parent_email || student?.email;
-  if (!to) return NextResponse.json({ error: 'No recipient email' }, { status: 400 });
+  let studentQuery = supabaseAdmin.from("students").select("full_name, email").eq("id", invoice.student_id);
+  studentQuery = applyTenantFilter(studentQuery, auth.ctx.tenant);
+  const { data: student } = await studentQuery.maybeSingle();
 
-  const balance = Number(inv.total_amount ?? inv.amount ?? 0) - Number(inv.amount_paid ?? 0);
-  if (balance <= 0) return NextResponse.json({ error: 'Already paid' }, { status: 400 });
+  const to = invoice.parent_email || student?.email;
+  if (!to) {
+    return NextResponse.json({ error: "No recipient email" }, { status: 400 });
+  }
+
+  const total = Number(invoice.total_amount ?? invoice.amount ?? 0);
+  const paid = Number(invoice.amount_paid ?? 0);
+  const balance = Math.max(total - paid, 0);
+
+  if (balance <= 0) {
+    return NextResponse.json({ error: "Invoice already paid" }, { status: 400 });
+  }
 
   const html = paymentReminderTemplate(
-    student?.full_name || 'Parent',
+    student?.full_name || "Parent",
     balance,
-    inv.due_date || '',
-    `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/invoices`
+    invoice.due_date || "",
+    `${appUrl}/dashboard/invoices`
   );
 
   try {
     await resend.emails.send({
-      from: process.env.FROM_EMAIL!,
+      from: fromEmail,
       to,
-      subject: `Payment reminder — ${inv.reference}`,
+      subject: `Payment reminder - ${invoice.reference}`,
       html,
     });
-  } catch (err: any) {
-    console.error(err);
-    return NextResponse.json({ error: 'Failed to send' }, { status: 500 });
+  } catch (error: any) {
+    return NextResponse.json({ error: error?.message || "Failed to send reminder" }, { status: 500 });
   }
 
-  await supabaseAdmin.from('invoices').update({ last_reminder_sent: new Date().toISOString() }).eq('id', invoiceId);
+  let updateQuery = supabaseAdmin
+    .from("invoices")
+    .update({ last_reminder_sent: new Date().toISOString() })
+    .eq("id", invoiceId);
+  updateQuery = applyTenantFilter(updateQuery, auth.ctx.tenant);
+  await updateQuery;
 
   return NextResponse.json({ ok: true });
 }

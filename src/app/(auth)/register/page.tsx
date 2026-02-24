@@ -36,6 +36,11 @@ export default function RegisterPage() {
     }
 
     const user = data.user;
+    if (data.session?.access_token) {
+      document.cookie = `sb-access-token=${encodeURIComponent(
+        data.session.access_token
+      )}; path=/; max-age=3600; samesite=lax`;
+    }
 
     if (user) {
       const { error: profileError } = await supabase
