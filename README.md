@@ -73,3 +73,18 @@ Public routes are under `/api/public/*`.
 
 - Ensure Supabase RLS policies are enabled and aligned with your role/tenant model.
 - Payment webhooks should be configured in your gateway dashboards before going live.
+
+## Database migration
+
+This repo now includes an initial schema migration at:
+
+- `supabase/migrations/20260224_000001_init_skoolpro_schema.sql`
+- `supabase/migrations/20260224_000002_seed_bootstrap.sql`
+
+Run it with Supabase CLI:
+
+```bash
+supabase db push
+```
+
+Or paste the SQL into the Supabase SQL editor for an existing project.
