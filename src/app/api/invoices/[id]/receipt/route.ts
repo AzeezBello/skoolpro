@@ -1,12 +1,11 @@
-import fs from "fs";
-import path from "path";
 import PDFDocument from "pdfkit";
 import { NextResponse, type NextRequest } from "next/server";
 import { requireRequestUser } from "@/lib/server/auth";
 import { supabaseAdmin } from "@/lib/supabaseServer";
 import { applyTenantFilter } from "@/lib/server/tenant";
+import { getSchoolProfile, loadLogoBuffer, type SchoolProfile } from "@/lib/server/schoolProfile";
 
-async function renderReceiptPdf(invoice: any, student: any, fee: any) {
+async function renderReceiptPdf(invoice: any, student: any, fee: any, school: SchoolProfile, logoBuffer: Buffer | null) {
   const doc = new PDFDocument({ margin: 40 });
   const chunks: Buffer[] = [];
 
@@ -16,26 +15,34 @@ async function renderReceiptPdf(invoice: any, student: any, fee: any) {
     doc.on("error", reject);
   });
 
-  const logoPath = path.join(process.cwd(), "public", "logo.png");
-  if (fs.existsSync(logoPath)) {
-    doc.image(logoPath, 50, 30, { width: 70 });
+  if (logoBuffer) {
+    try {
+      doc.image(logoBuffer, 50, 30, { width: 70 });
+    } catch {
+      // Malformed/unsupported image data — skip the logo rather than fail
+      // the whole document.
+    }
   }
 
   const total = Number(invoice.total_amount || 0);
   const paid = Number(invoice.amount_paid || 0);
   const balance = Math.max(total - paid, 0);
 
-  doc.fontSize(18).fillColor("#0A4D68").text("SkoolPro", 130, 35);
+  const schoolTitle = school.establishedYear ? `${school.name} (Est. ${school.establishedYear})` : school.name;
+  doc.fontSize(18).fillColor("#0A4D68").text(schoolTitle, 130, 35);
+  if (school.address) {
+    doc.fontSize(9).fillColor("#777").text(school.address, 130, doc.y);
+  }
   doc.moveDown(2);
-  doc.fontSize(14).fillColor("#000").text("Payment Receipt", { align: "center" });
+  doc.fillColor("#000").fontSize(14).text("Payment Receipt", { align: "center" });
   doc.moveDown(1);
 
   doc.fontSize(12).text(`Reference: ${invoice.reference}`);
   doc.text(`Student: ${student?.full_name || "-"}`);
   doc.text(`Fee: ${fee?.name || "-"}`);
-  doc.text(`Amount: NGN ${total.toLocaleString()}`);
-  doc.text(`Paid: NGN ${paid.toLocaleString()}`);
-  doc.text(`Balance: NGN ${balance.toLocaleString()}`);
+  doc.text(`Amount: ${school.currency} ${total.toLocaleString()}`);
+  doc.text(`Paid: ${school.currency} ${paid.toLocaleString()}`);
+  doc.text(`Balance: ${school.currency} ${balance.toLocaleString()}`);
   doc.text(`Status: ${invoice.status}`);
 
   doc.end();
@@ -43,7 +50,10 @@ async function renderReceiptPdf(invoice: any, student: any, fee: any) {
 }
 
 export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
-  const auth = await requireRequestUser(req);
+  // Only staff manage/view invoices today (see GET /api/invoices); without this,
+  // any authenticated account — including a self-registered "student" — could
+  // download any invoice's receipt by guessing/enumerating its id.
+  const auth = await requireRequestUser(req, { roles: ["admin", "teacher"] });
   if (!auth.ok) return auth.response;
 
   const { id: invoiceId } = await ctx.params;
@@ -71,7 +81,10 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
   const [{ data: student }, { data: fee }] = await Promise.all([studentQuery.maybeSingle(), feeQuery.maybeSingle()]);
 
   try {
-    const buffer = await renderReceiptPdf(invoice, student, fee);
+    const school = await getSchoolProfile(auth.ctx.tenant);
+    const logoBuffer = await loadLogoBuffer(school.logoUrl);
+
+    const buffer = await renderReceiptPdf(invoice, student, fee, school, logoBuffer);
     return new NextResponse(new Uint8Array(buffer), {
       headers: {
         "Content-Type": "application/pdf",

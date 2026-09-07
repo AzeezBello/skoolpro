@@ -38,7 +38,7 @@ export default function ResetPasswordPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-gray-900 text-white">
+    <div className="dark force-dark min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-gray-900 text-white">
       <SiteHeader />
       <main className="mx-auto flex max-w-3xl flex-col gap-8 px-6 py-16">
         <Card className="border-white/10 bg-card/80 shadow-soft">

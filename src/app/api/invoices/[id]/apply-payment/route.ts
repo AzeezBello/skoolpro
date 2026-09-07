@@ -1,7 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { requireRequestUser } from "@/lib/server/auth";
 import { supabaseAdmin } from "@/lib/supabaseServer";
-import { applyTenantFilter, withTenantPayload } from "@/lib/server/tenant";
+import { applyTenantFilter } from "@/lib/server/tenant";
+import { applyInvoicePayment } from "@/lib/server/payments";
+
+const ALLOWED_METHODS = new Set(["cash", "bank", "pos", "cheque", "manual"]);
 
 export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   const auth = await requireRequestUser(req, { roles: ["admin"] });
@@ -9,71 +12,38 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
 
   const { id: invoiceId } = await ctx.params;
   const body = await req.json().catch(() => null);
-  const amount = Number(body?.amount || 0);
-  const method = typeof body?.method === "string" && body.method.trim() ? body.method.trim() : "manual";
-  const note = typeof body?.note === "string" ? body.note.trim() : "";
+  const amount = Number(body?.amount);
+  const rawMethod = typeof body?.method === "string" ? body.method.trim().toLowerCase() : "manual";
+  const method = ALLOWED_METHODS.has(rawMethod) ? rawMethod : "manual";
+  const note = typeof body?.note === "string" ? body.note.trim().slice(0, 500) : "";
 
-  if (amount <= 0) {
+  if (!Number.isFinite(amount) || amount <= 0) {
     return NextResponse.json({ error: "Enter a valid amount" }, { status: 400 });
   }
 
-  let invoiceQuery = supabaseAdmin
-    .from("invoices")
-    .select("id, reference, total_amount, amount, amount_paid, payment_history")
-    .eq("id", invoiceId);
+  // Tenant check happens here; the RPC itself trusts its caller.
+  let invoiceQuery = supabaseAdmin.from("invoices").select("id").eq("id", invoiceId);
   invoiceQuery = applyTenantFilter(invoiceQuery, auth.ctx.tenant);
-
-  const { data: invoice, error: invoiceError } = await invoiceQuery.maybeSingle();
-  if (invoiceError || !invoice) {
+  const { data: invoice } = await invoiceQuery.maybeSingle();
+  if (!invoice) {
     return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
   }
 
-  const prevPaid = Number(invoice.amount_paid || 0);
-  const total = Number(invoice.total_amount || invoice.amount || 0);
-  if (prevPaid + amount > total) {
-    return NextResponse.json({ error: "Amount exceeds balance" }, { status: 400 });
-  }
-
-  const newPaid = prevPaid + amount;
-  const historyEntry = {
-    amount,
-    date: new Date().toISOString(),
-    by: auth.ctx.email || auth.ctx.userId,
-    method,
-    note,
-  };
-
-  const history = Array.isArray(invoice.payment_history)
-    ? [...(invoice.payment_history as unknown[]), historyEntry]
-    : [historyEntry];
-  const status = newPaid >= total ? "paid" : "partial";
-
-  let updateQuery = supabaseAdmin
-    .from("invoices")
-    .update({ amount_paid: newPaid, payment_history: history, status })
-    .eq("id", invoiceId);
-  updateQuery = applyTenantFilter(updateQuery, auth.ctx.tenant);
-
-  const { error: updateError } = await updateQuery;
-  if (updateError) {
-    return NextResponse.json({ error: updateError.message }, { status: 500 });
-  }
-
-  const paymentPayload = withTenantPayload(
-    {
-      invoice_id: invoiceId,
-      gateway: "manual",
+  try {
+    const result = await applyInvoicePayment({
+      invoiceId,
       amount,
-      status: "success",
-      gateway_response: { method, note, recorded_by: auth.ctx.userId },
-    },
-    auth.ctx.tenant
-  );
+      gateway: "manual",
+      method,
+      note,
+      actorUserId: auth.ctx.userId,
+      gatewayResponse: { recorded_by_email: auth.ctx.email },
+    });
 
-  const { error: paymentError } = await supabaseAdmin.from("payments").insert([paymentPayload]);
-  if (paymentError) {
-    return NextResponse.json({ error: paymentError.message }, { status: 500 });
+    return NextResponse.json({ ok: true, status: result.status, amount_paid: result.amount_paid, applied: result.applied });
+  } catch (error: any) {
+    const message = error?.message || "Could not record payment";
+    const status = /exceeds|greater than zero|cancelled/i.test(message) ? 400 : 500;
+    return NextResponse.json({ error: message }, { status });
   }
-
-  return NextResponse.json({ ok: true, status, amount_paid: newPaid });
 }

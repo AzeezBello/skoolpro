@@ -30,7 +30,7 @@ const pillars = [
 
 export default function AboutPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-gray-900 text-white">
+    <div className="dark force-dark min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-gray-900 text-white">
       <SiteHeader />
       <main className="mx-auto flex max-w-5xl flex-col gap-12 px-6 py-16">
         <section className="rounded-3xl border border-white/10 bg-slate-950/60 p-10 shadow-soft ring-1 ring-white/10">

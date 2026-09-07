@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { LanguageSwitcher } from "@/components/i18n/LanguageSwitcher";
 
 const links = [
   { href: "/", label: "Home" },
@@ -35,6 +36,7 @@ export function SiteHeader() {
           ))}
         </nav>
         <div className="flex items-center gap-3">
+          <LanguageSwitcher compact />
           <Link
             href="/login"
             className="hidden rounded-full border border-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:border-white/30 md:inline-flex"

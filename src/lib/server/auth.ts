@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
+import { createServerClient } from "@supabase/ssr";
 import { supabaseAdmin } from "@/lib/supabaseServer";
-import { isTenancyStrict, resolveTenantContext, type TenantContext } from "@/lib/server/tenant";
+import { resolveTenantContext, type TenantContext } from "@/lib/server/tenant";
 
 export type RequestUserContext = {
   accessToken: string;
@@ -9,11 +10,13 @@ export type RequestUserContext = {
   role: string | null;
   profile: Record<string, unknown> | null;
   tenant: TenantContext | null;
+  schoolStatus: string | null;
 };
 
 type RequireUserOptions = {
   roles?: string[];
-  requireTenant?: boolean;
+  /** Routes that legitimately serve users with no school yet (e.g. onboarding). */
+  allowMissingTenant?: boolean;
 };
 
 type RequireUserResult =
@@ -28,68 +31,61 @@ function forbidden(message = "Forbidden") {
   return NextResponse.json({ error: message }, { status: 403 });
 }
 
-function parseCookieValue(value: string): string {
-  try {
-    return decodeURIComponent(value);
-  } catch {
-    return value;
-  }
+function parseCookieHeader(cookieHeader: string | null): Array<{ name: string; value: string }> {
+  if (!cookieHeader) return [];
+
+  return cookieHeader
+    .split(";")
+    .map((segment) => segment.trim())
+    .filter(Boolean)
+    .map((segment) => {
+      const eq = segment.indexOf("=");
+      if (eq === -1) return { name: segment, value: "" };
+      const name = segment.slice(0, eq);
+      const raw = segment.slice(eq + 1);
+      let value = raw;
+      try {
+        value = decodeURIComponent(raw);
+      } catch {
+        value = raw;
+      }
+      return { name, value };
+    });
 }
 
-function parseCookieHeader(cookieHeader: string | null): Record<string, string> {
-  if (!cookieHeader) return {};
+// Reads the @supabase/ssr cookie session (sb-<ref>-auth-token, possibly
+// chunked) without ever writing cookies — route handlers can't refresh here,
+// that's the middleware's job.
+async function getAccessTokenFromCookies(req: Request): Promise<string | null> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY;
+  if (!url || !anonKey) return null;
 
-  return cookieHeader.split(";").reduce<Record<string, string>>((acc, segment) => {
-    const [rawKey, ...rest] = segment.trim().split("=");
-    if (!rawKey || rest.length === 0) return acc;
-    acc[rawKey] = parseCookieValue(rest.join("="));
-    return acc;
-  }, {});
+  const cookies = parseCookieHeader(req.headers.get("cookie"));
+  if (cookies.length === 0) return null;
+
+  const client = createServerClient(url, anonKey, {
+    cookies: {
+      getAll: () => cookies,
+      setAll: () => {},
+    },
+  });
+
+  const { data } = await client.auth.getSession();
+  return data.session?.access_token ?? null;
 }
 
-function parseSupabaseAuthCookie(value: string | undefined): string | null {
-  if (!value) return null;
-  const trimmed = value.trim();
-  if (!trimmed) return null;
-
-  if (!trimmed.startsWith("[")) {
-    return trimmed;
-  }
-
-  try {
-    const parsed = JSON.parse(trimmed);
-    if (Array.isArray(parsed) && typeof parsed[0] === "string") return parsed[0];
-  } catch {
-    return null;
-  }
-
-  return null;
-}
-
-export function getAccessTokenFromRequest(req: Request) {
+export async function getAccessTokenFromRequest(req: Request) {
   const authHeader = req.headers.get("authorization");
   if (authHeader?.startsWith("Bearer ")) {
     return authHeader.slice("Bearer ".length).trim();
   }
 
-  const cookies = parseCookieHeader(req.headers.get("cookie"));
-  const candidates = [
-    cookies["sb-access-token"],
-    cookies["sb-access-token.0"],
-    cookies["supabase-auth-token"],
-    cookies["sb-auth-token"],
-  ];
-
-  for (const candidate of candidates) {
-    const token = parseSupabaseAuthCookie(candidate);
-    if (token) return token;
-  }
-
-  return null;
+  return getAccessTokenFromCookies(req);
 }
 
 export async function getRequestUserContext(req: Request): Promise<RequestUserContext | null> {
-  const accessToken = getAccessTokenFromRequest(req);
+  const accessToken = await getAccessTokenFromRequest(req);
   if (!accessToken) return null;
 
   const { data: authData, error: authError } = await supabaseAdmin.auth.getUser(accessToken);
@@ -98,7 +94,7 @@ export async function getRequestUserContext(req: Request): Promise<RequestUserCo
   const userId = authData.user.id;
   const { data: profile, error: profileError } = await supabaseAdmin
     .from("profiles")
-    .select("*")
+    .select("*, schools:school_id(status)")
     .eq("id", userId)
     .maybeSingle();
 
@@ -106,7 +102,10 @@ export async function getRequestUserContext(req: Request): Promise<RequestUserCo
     console.warn("profile lookup failed", profileError);
   }
 
-  const profileRecord = (profile ?? null) as Record<string, unknown> | null;
+  const profileRecord = (profile ?? null) as (Record<string, unknown> & { schools?: { status?: string } | null }) | null;
+  const schoolStatus = typeof profileRecord?.schools?.status === "string" ? profileRecord.schools.status : null;
+
+  if (profileRecord) delete (profileRecord as Record<string, unknown>).schools;
 
   return {
     accessToken,
@@ -115,6 +114,7 @@ export async function getRequestUserContext(req: Request): Promise<RequestUserCo
     role: typeof profileRecord?.role === "string" ? profileRecord.role : null,
     profile: profileRecord,
     tenant: resolveTenantContext(profileRecord),
+    schoolStatus,
   };
 }
 
@@ -128,10 +128,21 @@ export async function requireRequestUser(req: Request, options: RequireUserOptio
     }
   }
 
-  const requiresTenant = options.requireTenant || isTenancyStrict();
-  if (requiresTenant && !ctx.tenant) {
-    return { ok: false, response: forbidden("Tenant context required") };
+  if (!options.allowMissingTenant) {
+    if (!ctx.tenant) {
+      return { ok: false, response: forbidden("Your account is not attached to a school yet") };
+    }
+    if (ctx.schoolStatus && ctx.schoolStatus !== "active") {
+      return { ok: false, response: forbidden("This school is currently suspended") };
+    }
   }
 
   return { ok: true, ctx };
+}
+
+/** The students.id this user may act on as a student (null for staff). */
+export function getOwnStudentId(ctx: RequestUserContext): string | null {
+  if (ctx.role !== "student") return null;
+  const related = ctx.profile?.related_id;
+  return typeof related === "string" && related ? related : ctx.userId;
 }

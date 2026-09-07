@@ -4,6 +4,33 @@
 
 @layer base {
   :root {
+    --background: 210 40% 98%;
+    --foreground: 222.2 47.4% 8%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 47.4% 8%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 47.4% 8%;
+    --primary: 142 71% 35%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 40% 92%;
+    --secondary-foreground: 222.2 47.4% 12%;
+    --muted: 210 40% 94%;
+    --muted-foreground: 215 16% 40%;
+    --accent: 142 71% 30%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84.2% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 214 32% 85%;
+    --input: 214 32% 85%;
+    --ring: 142 71% 35%;
+    --radius: 12px;
+    --shell: 210 40% 96%;
+    --shell-foreground: 222.2 47.4% 12%;
+    --shell-muted: 215 16% 45%;
+    --shell-hover: 222.2 47.4% 8% / 0.06;
+  }
+
+  .dark {
     --background: 222.2 47.4% 4%;
     --foreground: 210 40% 98%;
     --card: 222.2 47.4% 6%;
@@ -23,12 +50,10 @@
     --border: 217.2 32.6% 20%;
     --input: 217.2 32.6% 20%;
     --ring: 142 71% 45%;
-    --radius: 12px;
-  }
-
-  .dark {
-    --background: 222.2 47.4% 4%;
-    --foreground: 210 40% 98%;
+    --shell: 222.2 47.4% 3%;
+    --shell-foreground: 210 40% 98%;
+    --shell-muted: 215 20% 65%;
+    --shell-hover: 0 0% 100% / 0.06;
   }
 
   * {
@@ -38,10 +63,18 @@
   body {
     @apply bg-background text-foreground antialiased;
     min-height: 100vh;
+  }
+
+  .dark body {
     background-image:
       radial-gradient(circle at 20% 20%, rgba(52, 211, 153, 0.12), transparent 25%),
       radial-gradient(circle at 80% 0%, rgba(59, 130, 246, 0.12), transparent 20%),
       linear-gradient(180deg, rgba(17, 24, 39, 0.8), rgba(17, 24, 39, 0.95));
+  }
+
+  /* Marketing/auth pages are designed dark regardless of the app theme. */
+  .force-dark {
+    color-scheme: dark;
   }
 
   a {

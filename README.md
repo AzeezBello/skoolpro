@@ -1,90 +1,63 @@
-# SkoolPro (Next.js + Supabase)
+# SkoolPro (Next.js 15 + Supabase)
 
-SkoolPro is a school operations platform with dashboards for students, teachers, attendance, invoices, and payment processing.
-
-## What is now SaaS-ready
-
-- Centralized API auth via bearer token or synced session cookie
-- Role checks for sensitive invoice actions (`admin` required)
-- Optional multi-tenant scoping for API reads/writes
-- Secure internal invoice API with pagination and filters
-- Public API token guard for `/api/public/*`
-- Hardened Paystack/Flutterwave flows with improved idempotency and invoice-balance updates
-- Session-cookie sync for middleware/server-route compatibility
-- Baseline security headers and package import optimization
+Multi-tenant school operations platform: students, teachers, classes, sessions/terms, attendance, results and report cards, fee invoicing with Paystack/Flutterwave, parent portal, messaging, announcements and a platform-operator console.
 
 ## Quick start
 
-1. Copy `.env.example` to `.env.local`.
-2. Fill in all required secrets.
-3. Install dependencies:
-
 ```bash
+cp .env.example .env.local   # fill in Supabase, payment and email keys
 npm install
-```
-
-4. Run in development:
-
-```bash
 npm run dev
 ```
 
-## Key environment variables
+Apply the SQL in `supabase/migrations/` to your Supabase project in filename order (Supabase CLI: `supabase db push`).
 
-```env
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_KEY=
-NEXT_PUBLIC_BASE_URL=
-NEXT_PUBLIC_APP_URL=
+## Scripts
 
-PAYSTACK_SECRET_KEY=
-PAYSTACK_PUBLIC_KEY=
-FLW_SECRET_KEY=
-FLW_PUBLIC_KEY=
-FLW_WEBHOOK_SECRET_HASH=
+| Command | What it does |
+| --- | --- |
+| `npm run dev` / `npm run build` / `npm start` | Next.js |
+| `npm run typecheck` | `tsc --noEmit` |
+| `npm run lint` | ESLint (next/core-web-vitals) |
+| `npm test` | Vitest unit tests |
+| `npm run format` | Prettier |
 
-RESEND_API_KEY=
-FROM_EMAIL=
+## Architecture notes
 
-PUBLIC_API_TOKEN=
-SAAS_ENABLE_TENANCY=false
-SAAS_TENANCY_STRICT=false
-SAAS_TENANT_COLUMN=school_id
-```
+- **Tenancy is always on.** Every API route derives the caller's school from `profiles.school_id` and refuses requests from accounts with no school (except onboarding routes). Suspended schools are refused. RLS enforces the same on direct client queries.
+- **Auth/session**: `@supabase/ssr` cookie sessions. `middleware.ts` refreshes sessions and guards `/dashboard`, `/platform`, `/onboarding`. API routes accept either the cookie session or an `Authorization: Bearer` token (`lib/client/authFetch`).
+- **Onboarding**: a new signup either creates a school (becoming its admin) or accepts an invitation (`/onboarding`). Admins manage members and invitations under *Team & Access*.
+- **Payments**: all crediting goes through the `apply_invoice_payment` Postgres function (row lock + idempotent on gateway reference). Webhooks re-verify with the gateway and credit the settled amount only.
+- **Email**: `lib/server/email.ts` wraps Resend and records every send in `email_log`.
+- **Audit**: `lib/server/audit.ts` writes `audit_log`; admins see it under *Activity Log*.
+- **Plans**: `plans` table with limits enforced by triggers; purchases go through `apply_plan_payment` (idempotent on reference) and expire nightly via `expire_plans`.
+- **Overdue invoices**: flipped by trigger on write, nightly by `pg_cron` when available, or by `GET /api/cron/mark-overdue` (Vercel cron, `CRON_SECRET`).
+- **Public API** (`/api/public/*`): per-school tokens minted under *School Profile*, stored hashed, sent in `X-API-Token`.
 
-## Tenant configuration
+## Feature map
 
-Tenancy is opt-in and controlled by env vars.
+- Onboarding: create a school or accept an invitation; Team & Access for roles, invites, linking logins to teacher/student records, claiming unassigned sign-ups.
+- Academics: sessions/terms (current term, results publishing), classes, subjects, enrollment-aware results entry, report cards with positions and class averages, promotion/graduation, timetable, homework with submissions and grading.
+- Attendance: per-class daily sheet (present/late/absent/excused), one row per student per day, reports with exports.
+- Fees: fee items, single and bulk invoicing, discounts, cancel, manual and online payments (Paystack/Flutterwave), receipts, reminders (email, optional SMS), arrears/aging report.
+- Communication: announcements (by role/class), direct messages, in-app notifications, email log.
+- Admin: activity log, public API tokens, configurable grading (CA/exam split and letter scale), currency, subscription plan with self-service Paystack or Flutterwave upgrade/renewal, student CSV import/export, printable ID cards.
+- Admissions: public application form at `/apply/<school-slug>` (toggle under Admissions), review/accept into a class.
+- Modules: library (catalogue, loans, fines and loan period set under School Profile), transport (routes, stops, riders), hostel (rooms, bed allocation), online exams (multiple-choice and short-answer auto-marked, essays marked by the teacher; answers never exposed to students).
+- i18n: English, French, Hausa and Yorùbá dictionaries in `lib/i18n`; the shell, auth pages, landing page, and every dashboard page's heading, subtitle, table headers, primary buttons and attendance labels are translated (French complete; Hausa and Yorùbá cover titles and common actions); remaining body copy falls back to English. Add keys to `en` and translate in the other locales.
+- Theme: light/dark toggle in the top bar (dashboard); marketing and auth pages stay dark. Installable as a PWA (manifest).
+- Platform console: schools, suspension, plan assignment, admin assignment, audited impersonation.
 
-- Set `SAAS_ENABLE_TENANCY=true` to enforce tenant-aware filtering in protected invoice APIs.
-- Set `SAAS_TENANCY_STRICT=true` to reject authenticated requests that have no tenant context.
-- Set `SAAS_TENANT_COLUMN` if your tenant key differs from defaults (`organization_id`, `school_id`, `tenant_id`).
+## Roles
 
-## Public API behavior
+| Role | Can |
+| --- | --- |
+| admin | everything in their school |
+| teacher | attendance and results for their classes, reports, messaging |
+| student | own attendance, published results, report card, invoices (pay online) |
+| parent | linked children's attendance, results, invoices (pay online) |
+| platform admin | `/platform`: schools, suspension, impersonation (separate allowlist) |
 
-Public routes are under `/api/public/*`.
+## Environment
 
-- In development: routes work without token if `PUBLIC_API_TOKEN` is unset.
-- In production: `PUBLIC_API_TOKEN` must be configured.
-- Pass token using `x-public-api-token` header or `api_token` query string.
-
-## Notes
-
-- Ensure Supabase RLS policies are enabled and aligned with your role/tenant model.
-- Payment webhooks should be configured in your gateway dashboards before going live.
-
-## Database migration
-
-This repo now includes an initial schema migration at:
-
-- `supabase/migrations/20260224_000001_init_skoolpro_schema.sql`
-- `supabase/migrations/20260224_000002_seed_bootstrap.sql`
-
-Run it with Supabase CLI:
-
-```bash
-supabase db push
-```
-
-Or paste the SQL into the Supabase SQL editor for an existing project.
+See `.env.example`. `SUPABASE_SERVICE_KEY` is server-only. `PUBLIC_API_TOKEN` is a legacy fallback honoured only while the database holds a single school.

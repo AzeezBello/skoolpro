@@ -3,27 +3,21 @@ export type TenantContext = {
   value: string;
 };
 
-const DEFAULT_TENANT_COLUMNS = ["organization_id", "school_id", "tenant_id"] as const;
-
-function isTenancyEnabled() {
-  return process.env.SAAS_ENABLE_TENANCY === "true";
-}
-
-export function isTenancyStrict() {
-  return process.env.SAAS_TENANCY_STRICT === "true";
+// Tenant scoping is unconditional. It used to be gated behind
+// SAAS_ENABLE_TENANCY (default false), which meant every service-role query
+// in the API layer ran unfiltered across schools unless an operator opted in.
+// The only remaining knob is which column carries the school reference.
+export function getTenantColumn() {
+  return (process.env.SAAS_TENANT_COLUMN || "").trim() || "school_id";
 }
 
 export function resolveTenantContext(profile: Record<string, unknown> | null | undefined): TenantContext | null {
-  if (!isTenancyEnabled() || !profile) return null;
+  if (!profile) return null;
 
-  const configuredColumn = (process.env.SAAS_TENANT_COLUMN || "").trim();
-  const columns = configuredColumn ? [configuredColumn] : [...DEFAULT_TENANT_COLUMNS];
-
-  for (const column of columns) {
-    const value = profile[column];
-    if (typeof value === "string" && value.trim()) {
-      return { column, value };
-    }
+  const column = getTenantColumn();
+  const value = profile[column];
+  if (typeof value === "string" && value.trim()) {
+    return { column, value };
   }
 
   return null;

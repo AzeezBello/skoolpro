@@ -35,6 +35,12 @@ module.exports = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        shell: {
+          DEFAULT: "hsl(var(--shell))",
+          foreground: "hsl(var(--shell-foreground))",
+          muted: "hsl(var(--shell-muted))",
+          hover: "hsl(var(--shell-hover))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
