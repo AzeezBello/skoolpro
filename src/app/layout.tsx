@@ -1,20 +1,23 @@
 import "./globals.css";
 import { Toaster } from "react-hot-toast";
-import { Inter, Space_Grotesk } from "next/font/google";
+import localFont from "next/font/local";
 import { AuthSessionSync } from "@/components/AuthSessionSync";
 import { LocaleProvider } from "@/components/i18n/LocaleProvider";
 
 // Inter carries body copy and data-dense tables; Space Grotesk is reserved
-// for headings so the product keeps its distinctive voice.
-const fontSans = Inter({
-  subsets: ["latin"],
+// for headings so the product keeps its distinctive voice. Both are vendored
+// (variable latin subsets, SIL Open Font License) so builds never depend on
+// reaching Google Fonts.
+const fontSans = localFont({
+  src: "./fonts/Inter-latin.woff2",
+  weight: "100 900",
   variable: "--font-sans",
   display: "swap",
 });
 
-const fontDisplay = Space_Grotesk({
-  subsets: ["latin"],
-  weight: ["500", "600", "700"],
+const fontDisplay = localFont({
+  src: "./fonts/SpaceGrotesk-latin.woff2",
+  weight: "300 700",
   variable: "--font-display",
   display: "swap",
 });
