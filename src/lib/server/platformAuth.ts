@@ -16,7 +16,7 @@ type PlatformAuthResult =
 // route uses. Platform admins aren't part of that system at all — this
 // checks a completely separate allowlist table instead.
 export async function requirePlatformAdmin(req: Request): Promise<PlatformAuthResult> {
-  const accessToken = getAccessTokenFromRequest(req);
+  const accessToken = await getAccessTokenFromRequest(req);
   if (!accessToken) {
     return { ok: false, response: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
   }
