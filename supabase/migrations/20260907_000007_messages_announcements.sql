@@ -81,7 +81,7 @@ create policy "announcements_select_school"
 on public.announcements for select
 using (
   school_id = public.current_school_id()
-  and (audience is null or public.current_app_role() = any(audience) or public.current_app_role() = 'admin')
+  and (audience is null or public.current_app_role()::public.app_role = any(audience) or public.current_app_role() = 'admin')
   and (expires_at is null or expires_at > now())
 );
 
