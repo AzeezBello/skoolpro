@@ -1,9 +1,21 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import toast from "react-hot-toast";
+import { ArrowLeft, KeyRound, UserPlus } from "lucide-react";
 import { authFetch } from "@/lib/client/authFetch";
+import { PageHeader } from "@/components/ui/page-header";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { StatCard } from "@/components/ui/stat-card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Avatar } from "@/components/ui/avatar";
+import { Skeleton, SkeletonRows } from "@/components/ui/skeleton";
 
 interface StaffMember {
   id: string;
@@ -144,125 +156,150 @@ export default function PlatformSchoolDetailPage() {
   };
 
   if (loading) {
-    return <p className="text-sm text-gray-400">Loading...</p>;
+    return (
+      <div className="space-y-6" role="status" aria-label="Loading">
+        <Skeleton className="h-10 w-64" />
+        <div className="grid grid-cols-3 gap-4">
+          <Skeleton className="h-24" />
+          <Skeleton className="h-24" />
+          <Skeleton className="h-24" />
+        </div>
+        <SkeletonRows rows={4} />
+      </div>
+    );
   }
 
   if (!detail) {
-    return <p className="text-sm text-gray-400">School not found.</p>;
+    return <EmptyState illustration="search" title="School not found" action={<Link href="/platform/schools" className="text-sm font-semibold">Back to schools</Link>} />;
   }
 
   const { school, counts, staff } = detail;
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-semibold">{school.name}</h1>
-        <p className="text-sm text-gray-400">
-          {school.slug ? `${school.slug} · ` : ""}
-          <span className={school.status === "active" ? "text-green-400" : "text-red-400"}>{school.status}</span>
-        </p>
-      </div>
+      <Link href="/platform/schools" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
+        <ArrowLeft size={14} /> All schools
+      </Link>
 
-      <form onSubmit={savePlan} className="flex flex-wrap items-end gap-3 rounded-xl border border-white/10 bg-gray-900 p-4">
-        <div>
-          <label className="mb-1 block text-xs text-gray-400">Plan</label>
-          <select value={planId} onChange={(e) => setPlanId(e.target.value)} className="rounded-md border border-white/10 bg-gray-800 px-3 py-2 text-sm text-white">
-            <option value="free">Free</option>
-            <option value="basic">Basic</option>
-            <option value="pro">Pro</option>
-          </select>
-        </div>
-        <div>
-          <label className="mb-1 block text-xs text-gray-400">Duration (months)</label>
-          <input type="number" min={1} value={planMonths} onChange={(e) => setPlanMonths(e.target.value)} className="w-24 rounded-md border border-white/10 bg-gray-800 px-3 py-2 text-sm text-white" />
-        </div>
-        <button type="submit" disabled={savingPlan} className="rounded-md bg-amber-500 px-4 py-2 text-sm font-semibold text-amber-950 hover:bg-amber-400 disabled:opacity-50">
-          {savingPlan ? "Saving..." : "Set plan"}
-        </button>
-        <span className="text-xs text-gray-400">
-          Current: {school.plan_id || "free"}{school.plan_expires_at ? ` until ${new Date(school.plan_expires_at).toLocaleDateString()}` : ""}
-        </span>
-      </form>
+      <PageHeader
+        eyebrow="School"
+        title={school.name}
+        description={
+          <span className="flex flex-wrap items-center gap-2">
+            {school.slug && <span className="font-mono text-xs">{school.slug}</span>}
+            <Badge variant={school.status === "active" ? "success" : "danger"} dot>
+              {school.status}
+            </Badge>
+            <Badge variant="info">{(school.plan_id || "free").toUpperCase()} plan</Badge>
+            {school.plan_expires_at && <span className="text-xs">until {new Date(school.plan_expires_at).toLocaleDateString()}</span>}
+          </span>
+        }
+      />
 
       <div className="grid grid-cols-3 gap-4">
-        <div className="rounded-xl border border-white/10 bg-gray-900 p-4 text-center">
-          <p className="text-2xl font-semibold">{counts.students}</p>
-          <p className="text-xs text-gray-400">Students</p>
-        </div>
-        <div className="rounded-xl border border-white/10 bg-gray-900 p-4 text-center">
-          <p className="text-2xl font-semibold">{counts.teachers}</p>
-          <p className="text-xs text-gray-400">Teachers</p>
-        </div>
-        <div className="rounded-xl border border-white/10 bg-gray-900 p-4 text-center">
-          <p className="text-2xl font-semibold">{counts.classes}</p>
-          <p className="text-xs text-gray-400">Classes</p>
-        </div>
+        <StatCard label="Students" value={counts.students} />
+        <StatCard label="Teachers" value={counts.teachers} tone="info" />
+        <StatCard label="Classes" value={counts.classes} tone="neutral" />
       </div>
 
-      <div className="space-y-3">
-        <h2 className="text-lg font-semibold">Staff</h2>
-        {staff.length === 0 ? (
-          <p className="text-sm text-gray-400">No admin or teacher accounts yet.</p>
-        ) : (
-          <div className="overflow-x-auto rounded-xl border border-white/10 bg-gray-900">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-white/5 text-gray-400">
-                <tr>
-                  <th className="p-3">Name</th>
-                  <th className="p-3">Role</th>
-                  <th className="p-3">Email</th>
-                  <th className="p-3 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {staff.map((s) => (
-                  <tr key={s.id} className="border-t border-white/5">
-                    <td className="p-3 font-medium">{s.fullName}</td>
-                    <td className="p-3 capitalize text-gray-300">{s.role}</td>
-                    <td className="p-3 text-gray-300">{s.email || "—"}</td>
-                    <td className="p-3 text-right">
-                      <button
-                        onClick={() => impersonate(s)}
-                        disabled={impersonatingId === s.id}
-                        className="rounded-md bg-amber-500 px-3 py-1 text-xs font-semibold text-amber-950 transition hover:bg-amber-400 disabled:opacity-50"
-                      >
-                        {impersonatingId === s.id ? "Starting..." : "Impersonate"}
-                      </button>
-                    </td>
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Subscription plan</CardTitle>
+            <CardDescription>Assign a plan and its duration. Limits are enforced by the database.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={savePlan} className="grid gap-3 sm:grid-cols-[1fr_120px_auto] sm:items-end">
+              <div className="space-y-2">
+                <Label htmlFor="plan">Plan</Label>
+                <select
+                  id="plan"
+                  value={planId}
+                  onChange={(e) => setPlanId(e.target.value)}
+                  className="flex h-10 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                >
+                  <option value="free">Free</option>
+                  <option value="basic">Basic</option>
+                  <option value="pro">Pro</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="months">Months</Label>
+                <Input id="months" type="number" min={1} value={planMonths} onChange={(e) => setPlanMonths(e.target.value)} />
+              </div>
+              <Button type="submit" loading={savingPlan}>
+                {savingPlan ? "Saving..." : "Set plan"}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Assign an admin</CardTitle>
+            <CardDescription>
+              The account must already exist (they need to have signed up at least once). This only reassigns their role and school.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={assignAdmin} className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
+              <div className="space-y-2">
+                <Label htmlFor="assign-email">Email</Label>
+                <Input id="assign-email" type="email" value={assignEmail} onChange={(e) => setAssignEmail(e.target.value)} placeholder="admin@example.com" />
+              </div>
+              <Button type="submit" loading={assigning}>
+                <UserPlus size={15} /> {assigning ? "Assigning..." : "Assign admin"}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Staff</CardTitle>
+          <CardDescription>Admin and teacher accounts. Impersonation is audited and requires a reason.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {staff.length === 0 ? (
+            <EmptyState illustration="inbox" title="No admin or teacher accounts yet" description="Assign an admin above to get the school started." />
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr>
+                    <th className="p-3">Name</th>
+                    <th className="p-3">Role</th>
+                    <th className="p-3">Email</th>
+                    <th className="p-3 text-right">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        <form
-          onSubmit={assignAdmin}
-          className="flex flex-wrap items-end gap-3 rounded-xl border border-white/10 bg-gray-900 p-6"
-        >
-          <div className="flex-1">
-            <label className="mb-1 block text-xs text-gray-400">Assign an existing account as admin</label>
-            <input
-              type="email"
-              value={assignEmail}
-              onChange={(e) => setAssignEmail(e.target.value)}
-              placeholder="parent@example.com"
-              className="w-full rounded-md border border-white/10 bg-gray-800 px-3 py-2 text-sm text-white"
-            />
-          </div>
-          <button
-            type="submit"
-            disabled={assigning}
-            className="rounded-md bg-amber-500 px-5 py-2 text-sm font-semibold text-amber-950 transition hover:bg-amber-400 disabled:opacity-50"
-          >
-            {assigning ? "Assigning..." : "Assign admin"}
-          </button>
-        </form>
-        <p className="text-xs text-gray-500">
-          The account must already exist (they need to have signed up at least once) — this only reassigns their
-          role and school.
-        </p>
-      </div>
+                </thead>
+                <tbody>
+                  {staff.map((s) => (
+                    <tr key={s.id}>
+                      <td className="p-3">
+                        <span className="flex items-center gap-2.5">
+                          <Avatar name={s.fullName || s.email || "?"} size={30} />
+                          <span className="font-medium">{s.fullName}</span>
+                        </span>
+                      </td>
+                      <td className="p-3">
+                        <Badge variant={s.role === "admin" ? "info" : "secondary"}>{s.role}</Badge>
+                      </td>
+                      <td className="p-3 text-muted-foreground">{s.email || "—"}</td>
+                      <td className="p-3 text-right">
+                        <Button size="sm" variant="outline" loading={impersonatingId === s.id} onClick={() => impersonate(s)}>
+                          <KeyRound size={13} /> {impersonatingId === s.id ? "Starting..." : "Impersonate"}
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

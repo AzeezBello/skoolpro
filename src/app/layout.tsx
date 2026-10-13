@@ -1,44 +1,62 @@
 import "./globals.css";
 import { Toaster } from "react-hot-toast";
-import { Space_Grotesk } from "next/font/google";
+import { Inter, Space_Grotesk } from "next/font/google";
 import { AuthSessionSync } from "@/components/AuthSessionSync";
 import { LocaleProvider } from "@/components/i18n/LocaleProvider";
 
-const fontSans = Space_Grotesk({
+// Inter carries body copy and data-dense tables; Space Grotesk is reserved
+// for headings so the product keeps its distinctive voice.
+const fontSans = Inter({
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
   variable: "--font-sans",
+  display: "swap",
+});
+
+const fontDisplay = Space_Grotesk({
+  subsets: ["latin"],
+  weight: ["500", "600", "700"],
+  variable: "--font-display",
+  display: "swap",
 });
 
 export const metadata = {
-  title: "SkoolPro",
-  description: "School Information Management System",
+  title: {
+    default: "SkoolPro — School management for modern schools",
+    template: "%s · SkoolPro",
+  },
+  description:
+    "Admissions, attendance, results, fees, timetable, homework, online exams and parent communication in one place.",
   manifest: "/manifest.webmanifest",
   appleWebApp: { capable: true, title: "SkoolPro", statusBarStyle: "black-translucent" as const },
 };
 
 export const viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f8fafc" },
-    { media: "(prefers-color-scheme: dark)", color: "#0b1220" },
+    { media: "(prefers-color-scheme: light)", color: "#f6f8fb" },
+    { media: "(prefers-color-scheme: dark)", color: "#070b14" },
   ],
 };
 
-// Applied before paint so the chosen theme doesn't flash. Defaults to dark,
-// the app's original look.
-const themeScript = `(function(){try{var t=localStorage.getItem("skoolpro-theme");if(!t){t="dark"}document.documentElement.classList.toggle("dark",t==="dark")}catch(e){document.documentElement.classList.add("dark")}})();`;
+// Applied before paint so the chosen theme doesn't flash. Defaults to light;
+// the toggle in the dashboard top bar persists the choice.
+const themeScript = `(function(){try{var t=localStorage.getItem("skoolpro-theme");if(!t){t="light"}document.documentElement.classList.toggle("dark",t==="dark")}catch(e){document.documentElement.classList.remove("dark")}})();`;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className="dark" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
-      <body className={`${fontSans.variable} font-sans min-h-screen bg-background text-foreground antialiased`}>
+      <body className={`${fontSans.variable} ${fontDisplay.variable} font-sans min-h-screen bg-background text-foreground antialiased`}>
         <LocaleProvider>
           <AuthSessionSync />
           {children}
-          <Toaster position="top-right" />
+          <Toaster
+            position="top-right"
+            toastOptions={{
+              style: { borderRadius: "12px", fontSize: "14px" },
+            }}
+          />
         </LocaleProvider>
       </body>
     </html>

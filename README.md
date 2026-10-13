@@ -21,6 +21,7 @@ Apply the SQL in `supabase/migrations/` to your Supabase project in filename ord
 | `npm run lint` | ESLint (next/core-web-vitals) |
 | `npm test` | Vitest unit tests |
 | `npm run format` | Prettier |
+| `npm run superadmin -- --email … --password …` | Create or update a platform superadmin (service key required) |
 
 ## Architecture notes
 
@@ -45,8 +46,12 @@ Apply the SQL in `supabase/migrations/` to your Supabase project in filename ord
 - Admissions: public application form at `/apply/<school-slug>` (toggle under Admissions), review/accept into a class.
 - Modules: library (catalogue, loans, fines and loan period set under School Profile), transport (routes, stops, riders), hostel (rooms, bed allocation), online exams (multiple-choice and short-answer auto-marked, essays marked by the teacher; answers never exposed to students).
 - i18n: English, French, Hausa and Yorùbá dictionaries in `lib/i18n`; the shell, auth pages, landing page, and every dashboard page's heading, subtitle, table headers, primary buttons and attendance labels are translated (French complete; Hausa and Yorùbá cover titles and common actions); remaining body copy falls back to English. Add keys to `en` and translate in the other locales.
-- Theme: light/dark toggle in the top bar (dashboard); marketing and auth pages stay dark. Installable as a PWA (manifest).
-- Platform console: schools, suspension, plan assignment, admin assignment, audited impersonation.
+- Theme: light by default with a light/dark toggle in the top bar (dashboard); marketing, auth, onboarding and apply pages are always light. Installable as a PWA (manifest, `public/brand/icon.svg`).
+- Platform console: schools, suspension, plan assignment, admin assignment, audited impersonation. Create a platform superadmin with `npm run superadmin -- --email you@example.com --password '...'` (see `docs/SUPERADMIN.md`).
+
+## Design system
+
+See `docs/UI_REVAMP.md` for the design tokens, component library (`src/components/ui`), brand assets and illustrations (`src/components/brand`, `src/components/illustrations`), and the page-by-page notes from the October 2026 revamp. Dashboard navigation lives in `src/lib/navigation.ts`.
 
 ## Roles
 

@@ -3,7 +3,17 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import toast from "react-hot-toast";
+import { Plus, Search } from "lucide-react";
 import { authFetch } from "@/lib/client/authFetch";
+import { PageHeader } from "@/components/ui/page-header";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { StatCard } from "@/components/ui/stat-card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { SkeletonRows } from "@/components/ui/skeleton";
 
 interface SchoolRow {
   id: string;
@@ -21,6 +31,7 @@ export default function PlatformSchoolsPage() {
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
+  const [query, setQuery] = useState("");
   const [creating, setCreating] = useState(false);
 
   useEffect(() => {
@@ -95,96 +106,112 @@ export default function PlatformSchoolsPage() {
     }
   };
 
+  const filtered = schools.filter((s) => {
+    const q = query.trim().toLowerCase();
+    return !q || s.name.toLowerCase().includes(q) || (s.slug || "").toLowerCase().includes(q);
+  });
+  const totals = schools.reduce(
+    (acc, s) => ({
+      active: acc.active + (s.status === "active" ? 1 : 0),
+      suspended: acc.suspended + (s.status === "suspended" ? 1 : 0),
+      students: acc.students + s.studentCount,
+      teachers: acc.teachers + s.teacherCount,
+    }),
+    { active: 0, suspended: 0, students: 0, teachers: 0 }
+  );
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Schools</h1>
-        <p className="text-sm text-gray-400">Every school on the platform.</p>
+    <div className="space-y-8">
+      <PageHeader eyebrow="Platform" title="Schools" description="Every school on the platform, with suspension, plan and admin controls." />
+
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <StatCard label="Active schools" value={totals.active} loading={loading} />
+        <StatCard label="Suspended" value={totals.suspended} tone={totals.suspended ? "danger" : "neutral"} loading={loading} />
+        <StatCard label="Students" value={totals.students.toLocaleString()} tone="info" loading={loading} />
+        <StatCard label="Teachers" value={totals.teachers.toLocaleString()} tone="neutral" loading={loading} />
       </div>
 
-      <form
-        onSubmit={createSchool}
-        className="flex flex-wrap items-end gap-3 rounded-xl border border-white/10 bg-gray-900 p-6"
-      >
-        <div>
-          <label className="mb-1 block text-xs text-gray-400">School name</label>
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="rounded-md border border-white/10 bg-gray-800 px-3 py-2 text-sm text-white"
-          />
-        </div>
-        <div>
-          <label className="mb-1 block text-xs text-gray-400">Slug (optional)</label>
-          <input
-            value={slug}
-            onChange={(e) => setSlug(e.target.value)}
-            placeholder="auto-generated if blank"
-            className="rounded-md border border-white/10 bg-gray-800 px-3 py-2 text-sm text-white"
-          />
-        </div>
-        <button
-          type="submit"
-          disabled={creating}
-          className="rounded-md bg-amber-500 px-5 py-2 text-sm font-semibold text-amber-950 transition hover:bg-amber-400 disabled:opacity-50"
-        >
-          {creating ? "Creating..." : "Create school"}
-        </button>
-      </form>
+      <Card>
+        <CardHeader>
+          <CardTitle>Create a school</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={createSchool} className="grid gap-3 md:grid-cols-[1fr_1fr_auto] md:items-end">
+            <div className="space-y-2">
+              <Label htmlFor="school-name">School name</Label>
+              <Input id="school-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Bright Future Academy" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="school-slug">Slug (optional)</Label>
+              <Input id="school-slug" value={slug} onChange={(e) => setSlug(e.target.value)} placeholder="auto-generated if blank" />
+            </div>
+            <Button type="submit" loading={creating}>
+              <Plus size={15} /> {creating ? "Creating..." : "Create school"}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
 
-      {loading ? (
-        <p className="text-sm text-gray-400">Loading...</p>
-      ) : schools.length === 0 ? (
-        <p className="text-sm text-gray-400">No schools yet.</p>
-      ) : (
-        <div className="overflow-x-auto rounded-xl border border-white/10 bg-gray-900">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-white/5 text-gray-400">
-              <tr>
-                <th className="p-3">Name</th>
-                <th className="p-3">Status</th>
-                <th className="p-3">Students</th>
-                <th className="p-3">Teachers</th>
-                <th className="p-3">Classes</th>
-                <th className="p-3">Created</th>
-                <th className="p-3 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {schools.map((s) => (
-                <tr key={s.id} className="border-t border-white/5">
-                  <td className="p-3 font-medium">
-                    <Link href={`/platform/schools/${s.id}`} className="text-amber-300 hover:underline">
-                      {s.name}
-                    </Link>
-                  </td>
-                  <td className="p-3">
-                    <span
-                      className={`rounded-full px-2 py-1 text-xs font-semibold ${
-                        s.status === "active" ? "bg-green-500/20 text-green-300" : "bg-red-500/20 text-red-300"
-                      }`}
-                    >
-                      {s.status}
-                    </span>
-                  </td>
-                  <td className="p-3 text-gray-300">{s.studentCount}</td>
-                  <td className="p-3 text-gray-300">{s.teacherCount}</td>
-                  <td className="p-3 text-gray-300">{s.classCount}</td>
-                  <td className="p-3 text-gray-400">{new Date(s.created_at).toLocaleDateString()}</td>
-                  <td className="p-3 text-right">
-                    <button
-                      onClick={() => toggleStatus(s)}
-                      className="rounded-md bg-white/10 px-3 py-1 text-xs font-semibold text-white transition hover:bg-white/20"
-                    >
-                      {s.status === "active" ? "Suspend" : "Reactivate"}
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <Card>
+        <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <CardTitle>All schools</CardTitle>
+          <div className="relative w-full sm:w-72">
+            <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search by name or slug" className="pl-9" aria-label="Search schools" />
+          </div>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <SkeletonRows rows={5} />
+          ) : schools.length === 0 ? (
+            <EmptyState illustration="folder" title="No schools yet" description="Create the first school above or wait for a sign-up." />
+          ) : filtered.length === 0 ? (
+            <EmptyState illustration="search" title="No matches" description="Try a different name or slug." />
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr>
+                    <th className="p-3">Name</th>
+                    <th className="p-3">Status</th>
+                    <th className="p-3 text-right">Students</th>
+                    <th className="p-3 text-right">Teachers</th>
+                    <th className="p-3 text-right">Classes</th>
+                    <th className="p-3">Created</th>
+                    <th className="p-3 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((s) => (
+                    <tr key={s.id}>
+                      <td className="p-3">
+                        <Link href={`/platform/schools/${s.id}`} className="font-semibold text-foreground hover:text-primary">
+                          {s.name}
+                        </Link>
+                        {s.slug && <p className="text-xs text-muted-foreground">{s.slug}</p>}
+                      </td>
+                      <td className="p-3">
+                        <Badge variant={s.status === "active" ? "success" : "danger"} dot>
+                          {s.status}
+                        </Badge>
+                      </td>
+                      <td className="p-3 text-right tabular-nums">{s.studentCount}</td>
+                      <td className="p-3 text-right tabular-nums">{s.teacherCount}</td>
+                      <td className="p-3 text-right tabular-nums">{s.classCount}</td>
+                      <td className="p-3 text-muted-foreground">{new Date(s.created_at).toLocaleDateString()}</td>
+                      <td className="p-3 text-right">
+                        <Button size="sm" variant={s.status === "active" ? "outline" : "soft"} onClick={() => toggleStatus(s)}>
+                          {s.status === "active" ? "Suspend" : "Reactivate"}
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

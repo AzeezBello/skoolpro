@@ -1,44 +1,64 @@
 import Link from "next/link";
-import { Mail, Phone, MapPin } from "lucide-react";
+import { Logo } from "@/components/brand/Logo";
+
+const columns = [
+  {
+    title: "Product",
+    links: [
+      { href: "/#features", label: "Features" },
+      { href: "/#parents", label: "Parent portal" },
+      { href: "/#plans", label: "Plans" },
+      { href: "/faq", label: "FAQ" },
+    ],
+  },
+  {
+    title: "Company",
+    links: [
+      { href: "/about", label: "About" },
+      { href: "/contact", label: "Contact" },
+      { href: "/login", label: "Log in" },
+      { href: "/register", label: "Register a school" },
+    ],
+  },
+  {
+    title: "Contact",
+    links: [
+      { href: "mailto:support@skoolpro.app", label: "support@skoolpro.app" },
+      { href: "tel:+2348000000000", label: "+234 (0) 800 000 0000" },
+    ],
+  },
+];
 
 export function SiteFooter() {
   return (
-    <footer className="border-t border-white/5 bg-slate-950/70">
-      <div className="mx-auto max-w-6xl px-6 py-10">
-        <div className="grid gap-8 md:grid-cols-4">
-          <div className="space-y-2 md:col-span-2">
-            <p className="text-lg font-semibold text-white">SkoolPro</p>
-            <p className="text-sm text-slate-300">
-              A calmer way to run your school: analytics, attendance, invoices, payments, and messaging in one place.
+    <footer className="border-t border-slate-100 bg-white">
+      <div className="mx-auto max-w-5xl px-6 py-20 md:px-8">
+        <div className="grid gap-12 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
+          <div className="space-y-5">
+            <Logo size={28} />
+            <p className="max-w-xs text-sm leading-relaxed text-slate-500">
+              School management for Nigerian and African schools. Admissions, attendance, results, fees and parent
+              communication in one calm workspace.
             </p>
           </div>
-          <div className="space-y-2">
-            <p className="text-sm font-semibold text-white">Explore</p>
-            <div className="flex flex-col gap-2 text-sm text-slate-300">
-              <Link href="/">Home</Link>
-              <Link href="/about">About</Link>
-              <Link href="/contact">Contact</Link>
-              <Link href="/faq">FAQ</Link>
+          {columns.map((col) => (
+            <div key={col.title}>
+              <p className="text-sm font-semibold text-slate-900">{col.title}</p>
+              <ul className="mt-4 space-y-3 text-sm">
+                {col.links.map((l) => (
+                  <li key={l.href}>
+                    <Link href={l.href} className="text-slate-500 hover:text-slate-900">
+                      {l.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
             </div>
-          </div>
-          <div className="space-y-2">
-            <p className="text-sm font-semibold text-white">Contact</p>
-            <div className="flex items-center gap-2 text-sm text-slate-300">
-              <Mail size={16} className="text-primary" />
-              support@skoolpro.app
-            </div>
-            <div className="flex items-center gap-2 text-sm text-slate-300">
-              <Phone size={16} className="text-primary" />
-              +234 (0) 800 000 0000
-            </div>
-            <div className="flex items-center gap-2 text-sm text-slate-300">
-              <MapPin size={16} className="text-primary" />
-              Lagos HQ (by appointment), remote-first.
-            </div>
-          </div>
+          ))}
         </div>
-        <div className="mt-8 text-sm text-muted-foreground">
-          © {new Date().getFullYear()} SkoolPro. All rights reserved.
+        <div className="mt-16 flex flex-col gap-2 border-t border-slate-100 pt-8 text-xs text-slate-400 sm:flex-row sm:items-center sm:justify-between">
+          <p>© {new Date().getFullYear()} SkoolPro. All rights reserved.</p>
+          <p>English · Français · Hausa · Yorùbá</p>
         </div>
       </div>
     </footer>

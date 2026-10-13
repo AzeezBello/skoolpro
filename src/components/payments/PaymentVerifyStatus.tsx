@@ -55,12 +55,12 @@ export function PaymentVerifyStatus({ gateway }: { gateway: Gateway }) {
 
   return (
     <div className="flex flex-col items-center gap-4 text-center">
-      {state === "loading" && <p className="text-lg text-slate-300">Confirming your payment…</p>}
+      {state === "loading" && <p className="text-lg text-slate-500">Confirming your payment…</p>}
 
       {state === "success" && (
         <>
-          <h1 className="text-3xl font-semibold text-green-400">Payment successful</h1>
-          <p className="text-slate-300">
+          <h1 className="text-3xl font-semibold text-primary">Payment successful</h1>
+          <p className="text-slate-500">
             {result?.amount ? `NGN ${result.amount.toLocaleString()} received. ` : ""}
             {result?.kind === "plan" ? "Your subscription has been updated." : "Your invoice has been updated."}
           </p>
@@ -69,8 +69,8 @@ export function PaymentVerifyStatus({ gateway }: { gateway: Gateway }) {
 
       {state === "failed" && (
         <>
-          <h1 className="text-3xl font-semibold text-amber-400">Payment not confirmed</h1>
-          <p className="text-slate-300">
+          <h1 className="text-3xl font-semibold text-warning">Payment not confirmed</h1>
+          <p className="text-slate-500">
             We couldn&apos;t confirm this payment as successful (status: {result?.status || "unknown"}). If you were
             charged, contact your school&apos;s admin with your payment reference.
           </p>
@@ -79,8 +79,8 @@ export function PaymentVerifyStatus({ gateway }: { gateway: Gateway }) {
 
       {state === "error" && (
         <>
-          <h1 className="text-3xl font-semibold text-red-400">Something went wrong</h1>
-          <p className="text-slate-300">
+          <h1 className="text-3xl font-semibold text-destructive">Something went wrong</h1>
+          <p className="text-slate-500">
             We couldn&apos;t verify this payment. If you were charged, contact your school&apos;s admin.
           </p>
         </>

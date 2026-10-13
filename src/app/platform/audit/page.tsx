@@ -3,6 +3,11 @@
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { authFetch } from "@/lib/client/authFetch";
+import { PageHeader } from "@/components/ui/page-header";
+import { Card, CardContent } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { SkeletonRows } from "@/components/ui/skeleton";
+import { Avatar } from "@/components/ui/avatar";
 
 interface AuditRow {
   id: string;
@@ -38,40 +43,46 @@ export default function PlatformAuditLogPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Impersonation audit log</h1>
-        <p className="text-sm text-gray-400">Every &quot;log in as&quot; action, most recent first.</p>
-      </div>
+    <div className="space-y-8">
+      <PageHeader eyebrow="Platform" title="Impersonation audit log" description='Every "log in as" action, most recent first.' />
 
-      {loading ? (
-        <p className="text-sm text-gray-400">Loading...</p>
-      ) : rows.length === 0 ? (
-        <p className="text-sm text-gray-400">No impersonation events yet.</p>
-      ) : (
-        <div className="overflow-x-auto rounded-xl border border-white/10 bg-gray-900">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-white/5 text-gray-400">
-              <tr>
-                <th className="p-3">When</th>
-                <th className="p-3">Platform admin</th>
-                <th className="p-3">Impersonated</th>
-                <th className="p-3">School</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => (
-                <tr key={r.id} className="border-t border-white/5">
-                  <td className="p-3 text-gray-300">{new Date(r.startedAt).toLocaleString()}</td>
-                  <td className="p-3 text-gray-300">{r.platformAdminEmail || "—"}</td>
-                  <td className="p-3 text-gray-300">{r.targetUserEmail || "—"}</td>
-                  <td className="p-3 text-gray-300">{r.targetSchoolName || "—"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <Card>
+        <CardContent className="pt-6">
+          {loading ? (
+            <SkeletonRows rows={6} />
+          ) : rows.length === 0 ? (
+            <EmptyState illustration="inbox" title="No impersonation events yet" description="Entries appear here whenever an operator logs in as a school user." />
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr>
+                    <th className="p-3">When</th>
+                    <th className="p-3">Platform admin</th>
+                    <th className="p-3">Impersonated</th>
+                    <th className="p-3">School</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((r) => (
+                    <tr key={r.id}>
+                      <td className="p-3 whitespace-nowrap text-muted-foreground">{new Date(r.startedAt).toLocaleString()}</td>
+                      <td className="p-3">
+                        <span className="flex items-center gap-2">
+                          <Avatar name={r.platformAdminEmail || "?"} size={26} />
+                          {r.platformAdminEmail || "—"}
+                        </span>
+                      </td>
+                      <td className="p-3">{r.targetUserEmail || "—"}</td>
+                      <td className="p-3 text-muted-foreground">{r.targetSchoolName || "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

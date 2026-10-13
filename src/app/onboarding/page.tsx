@@ -9,8 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { SiteHeader } from "@/components/SiteHeader";
-import { SiteFooter } from "@/components/SiteFooter";
+import { MarketingLayout } from "@/components/marketing/MarketingLayout";
 
 type Mode = "choose" | "create" | "invite";
 
@@ -110,16 +109,16 @@ function OnboardingInner() {
   };
 
   if (checking) {
-    return <p className="text-center text-sm text-muted-foreground">Checking your account...</p>;
+    return <p className="text-center text-sm text-slate-500">Checking your account...</p>;
   }
 
   return (
-    <div className="relative z-10 w-full max-w-3xl space-y-6">
+    <div className="w-full max-w-3xl space-y-10">
       <div className="text-center">
-        <p className="text-sm uppercase tracking-[0.3em] text-primary">Almost there</p>
-        <h1 className="mt-2 text-3xl font-semibold">Set up your workspace</h1>
-        <p className="mt-2 text-muted-foreground">
-          Signed in as <span className="text-foreground">{email}</span>. Create a new school or join one you were invited to.
+        <p className="eyebrow">Almost there</p>
+        <h1 className="mt-4 text-3xl font-semibold tracking-tight text-slate-900">Set up your workspace</h1>
+        <p className="mt-3 text-slate-500">
+          Signed in as <span className="text-slate-900">{email}</span>. Create a new school or join one you were invited to.
         </p>
       </div>
 
@@ -127,19 +126,19 @@ function OnboardingInner() {
         <div className="grid gap-4 md:grid-cols-2">
           <button
             onClick={() => setMode("create")}
-            className="rounded-2xl border border-border bg-card/80 p-6 text-left transition hover:border-primary/60 hover:bg-card"
+            className="rounded-2xl border border-slate-200 p-8 text-left transition hover:border-slate-900"
           >
             <h2 className="text-lg font-semibold">Create a new school</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
+            <p className="mt-2 text-sm text-slate-500">
               You&apos;ll become the school&apos;s first admin and can invite staff, students and parents.
             </p>
           </button>
           <button
             onClick={() => setMode("invite")}
-            className="rounded-2xl border border-border bg-card/80 p-6 text-left transition hover:border-primary/60 hover:bg-card"
+            className="rounded-2xl border border-slate-200 p-8 text-left transition hover:border-slate-900"
           >
             <h2 className="text-lg font-semibold">I have an invitation</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
+            <p className="mt-2 text-sm text-slate-500">
               Join an existing school using the link or code your school admin sent you.
             </p>
           </button>
@@ -219,16 +218,12 @@ function OnboardingInner() {
 
 export default function OnboardingPage() {
   return (
-    <div className="dark force-dark min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-gray-900 text-white">
-      <SiteHeader />
-      <div className="relative flex min-h-[80vh] items-center justify-center overflow-hidden px-4 py-10">
-        <div className="absolute inset-0 bg-grid bg-[size:32px_32px] opacity-40" />
-        <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-background" />
-        <Suspense fallback={<p className="relative z-10 text-sm text-muted-foreground">Loading...</p>}>
+    <MarketingLayout>
+      <div className="flex min-h-[70vh] items-center justify-center px-6 py-20 md:py-28">
+        <Suspense fallback={<p className="text-sm text-slate-500">Loading...</p>}>
           <OnboardingInner />
         </Suspense>
       </div>
-      <SiteFooter />
-    </div>
+    </MarketingLayout>
   );
 }

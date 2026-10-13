@@ -1,34 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { Moon, Sun } from "lucide-react";
-
-const KEY = "skoolpro-theme";
+import { useTheme } from "@/lib/hooks/useTheme";
+import { useT } from "@/components/i18n/LocaleProvider";
 
 export function ThemeToggle() {
-  const [dark, setDark] = useState(true);
-
-  useEffect(() => {
-    setDark(document.documentElement.classList.contains("dark"));
-  }, []);
-
-  const toggle = () => {
-    const next = !dark;
-    setDark(next);
-    document.documentElement.classList.toggle("dark", next);
-    try {
-      localStorage.setItem(KEY, next ? "dark" : "light");
-    } catch {
-      // storage unavailable; theme still applied for this page
-    }
-  };
+  const { dark, toggle } = useTheme();
+  const { t } = useT();
+  const label = dark ? t("topbar.theme.light") : t("topbar.theme.dark");
 
   return (
     <button
       type="button"
       onClick={toggle}
-      aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
-      className="flex h-9 w-9 items-center justify-center rounded-full bg-shell-hover text-shell-foreground transition hover:opacity-80"
+      aria-label={label}
+      title={label}
+      className="flex h-9 w-9 items-center justify-center rounded-full text-shell-foreground transition hover:bg-shell-hover"
     >
       {dark ? <Sun size={16} /> : <Moon size={16} />}
     </button>

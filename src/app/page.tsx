@@ -7,6 +7,7 @@ import {
   BookMarked,
   Bus,
   CalendarDays,
+  Check,
   ClipboardCheck,
   CreditCard,
   FileQuestion,
@@ -15,116 +16,244 @@ import {
   ShieldCheck,
   Users2,
 } from "lucide-react";
-import { SiteHeader } from "@/components/SiteHeader";
-import { SiteFooter } from "@/components/SiteFooter";
+import { MarketingLayout } from "@/components/marketing/MarketingLayout";
+import { DashboardMockup, PhoneMockup, SchoolIllustration } from "@/components/illustrations";
 import { useT } from "@/components/i18n/LocaleProvider";
 
 const features = [
-  { title: "Admissions to graduation", description: "Public application form, review and enrol in one click, class promotion and graduation at year end.", icon: ClipboardCheck },
-  { title: "Results & report cards", description: "CA and exam entry, configurable grading scale, positions and class averages, publish when ready.", icon: BarChart3 },
-  { title: "Fees that get paid", description: "Bulk invoicing, discounts, Paystack and Flutterwave, receipts, reminders and an arrears report.", icon: CreditCard },
-  { title: "Parents in the loop", description: "A parent portal with attendance, results, invoices to pay online, announcements and messaging.", icon: Users2 },
-  { title: "Timetable, homework & CBT", description: "Weekly timetable, assignments with submissions and grading, timed online multiple-choice exams.", icon: FileQuestion },
-  { title: "Library, transport & hostel", description: "Book loans and fines, bus routes and stops, hostel rooms and bed allocation.", icon: Bus },
-  { title: "Communication", description: "Announcements by class or role, direct messages, email and SMS reminders, in-app notifications.", icon: MessageSquare },
-  { title: "Secure and multi-tenant", description: "Row-level security per school, audited actions, hashed API tokens, invite-only staff access.", icon: ShieldCheck },
+  { title: "Admissions to graduation", description: "Public application form, one-click enrolment, promotion and graduation at year end.", icon: ClipboardCheck },
+  { title: "Results & report cards", description: "CA and exam entry, configurable grading, positions and averages, published when ready.", icon: BarChart3 },
+  { title: "Fees that get paid", description: "Bulk invoicing, discounts, Paystack and Flutterwave, receipts, reminders and arrears.", icon: CreditCard },
+  { title: "Parents in the loop", description: "Attendance, results, invoices to pay online, announcements and messaging.", icon: Users2 },
+  { title: "Timetable, homework & CBT", description: "Weekly timetable, graded assignments and timed online exams.", icon: FileQuestion },
+  { title: "Library, transport & hostel", description: "Book loans and fines, bus routes and stops, rooms and bed allocation.", icon: Bus },
+  { title: "Communication", description: "Announcements by class or role, direct messages, email and SMS reminders.", icon: MessageSquare },
+  { title: "Secure and multi-tenant", description: "Row-level security per school, audited actions, invite-only staff access.", icon: ShieldCheck },
+];
+
+const steps = [
+  { n: "1", title: "Create your school", body: "Sign up, name your school and you're the first admin. Set your logo, currency and grading scale." },
+  { n: "2", title: "Import students, invite staff", body: "Upload a CSV of students and classes, then send invitation links to teachers and parents." },
+  { n: "3", title: "Run the term", body: "Take attendance, enter results, issue invoices and collect fees online. Publish report cards when ready." },
+];
+
+const roles = [
+  { title: "Admin", body: "Everything in their school: people, academics, fees, settings and the audit log." },
+  { title: "Teacher", body: "Attendance and results for their classes, homework, exams and messaging." },
+  { title: "Student", body: "Own attendance, timetable, homework, published results and invoices." },
+  { title: "Parent", body: "Linked children's attendance, results and invoices, paid online in a tap." },
+];
+
+const plans = [
+  { name: "Free", tag: "To get started", points: ["Up to 50 students", "Up to 5 teachers", "All core modules", "Parent portal"] },
+  { name: "Basic", tag: "Growing schools", points: ["Higher student limit", "More teacher seats", "Email and SMS reminders", "Priority support"] },
+  { name: "Pro", tag: "Multi-campus ready", points: ["Highest limits", "Public API tokens", "Audit log exports", "Onboarding assistance"] },
 ];
 
 export default function HomePage() {
   const { t } = useT();
 
   return (
-    <div className="dark force-dark min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-gray-900 text-white">
-      <SiteHeader />
-      <main className="mx-auto flex max-w-6xl flex-col gap-16 px-6 py-16">
-        <header className="flex flex-col gap-6 rounded-3xl bg-slate-900/60 p-10 shadow-2xl ring-1 ring-white/10">
-          <p className="text-sm uppercase tracking-[0.3em] text-green-400">SkoolPro</p>
-          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-            <div className="max-w-3xl space-y-3">
-              <h1 className="text-4xl font-semibold leading-tight md:text-5xl">{t("landing.tagline")}</h1>
-              <p className="text-lg text-slate-300">{t("landing.sub")}</p>
-              <div className="mt-6 flex flex-wrap gap-3">
-                <Link href="/register" className="inline-flex items-center gap-2 rounded-full bg-green-500 px-5 py-3 text-sm font-semibold text-gray-950 transition hover:bg-green-400">
-                  {t("landing.cta.register")} <ArrowRight size={16} />
-                </Link>
-                <Link href="/login" className="inline-flex items-center gap-2 rounded-full border border-white/20 px-5 py-3 text-sm font-semibold transition hover:border-white/40">
-                  {t("landing.cta.dashboard")}
-                </Link>
-                <Link href="/about" className="inline-flex items-center gap-2 rounded-full border border-white/10 px-5 py-3 text-sm font-semibold text-white/80 transition hover:border-white/30 hover:text-white">
-                  {t("landing.cta.about")}
-                </Link>
-              </div>
-            </div>
-            <div className="rounded-2xl bg-gradient-to-br from-green-500/20 to-green-500/5 px-6 py-5 text-sm text-slate-200 ring-1 ring-green-500/30 md:max-w-xs">
-              <p className="font-semibold text-green-300">Free to start</p>
-              <p className="text-slate-300">Up to 50 students and 5 teachers on the free plan. Upgrade in-app when you grow.</p>
-            </div>
-          </div>
-        </header>
-
-        <section className="grid gap-6 md:grid-cols-2">
-          {features.map(({ title, description, icon: Icon }) => (
-            <div key={title} className="flex gap-4 rounded-2xl bg-slate-900/70 p-6 ring-1 ring-white/5 transition hover:-translate-y-1 hover:ring-green-400/50">
-              <div className="mt-1 rounded-xl bg-green-500/15 p-3 text-green-300 ring-1 ring-green-500/30">
-                <Icon />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold">{title}</h3>
-                <p className="text-slate-300">{description}</p>
-              </div>
-            </div>
-          ))}
-        </section>
-
-        <section className="grid gap-6 rounded-3xl bg-slate-950/70 p-8 ring-1 ring-white/10 md:grid-cols-3">
-          <div className="col-span-2 space-y-4">
-            <p className="text-sm uppercase tracking-[0.3em] text-primary">For parents</p>
-            <h2 className="text-2xl font-semibold">{t("landing.applyBanner.title")}</h2>
-            <p className="text-slate-300">{t("landing.applyBanner.body")}</p>
-            <div className="grid gap-3 md:grid-cols-2">
-              <div className="flex items-start gap-3 rounded-xl border border-white/5 bg-white/5 p-4">
-                <CalendarDays className="mt-1 text-primary" />
-                <div>
-                  <p className="font-semibold">See every day</p>
-                  <p className="text-sm text-slate-300">Attendance, timetable and homework for each child.</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3 rounded-xl border border-white/5 bg-white/5 p-4">
-                <BookMarked className="mt-1 text-primary" />
-                <div>
-                  <p className="font-semibold">Results when published</p>
-                  <p className="text-sm text-slate-300">Report cards you can download the moment the school releases them.</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3 rounded-xl border border-white/5 bg-white/5 p-4">
-                <CreditCard className="mt-1 text-primary" />
-                <div>
-                  <p className="font-semibold">Pay fees online</p>
-                  <p className="text-sm text-slate-300">Card, bank transfer or USSD through Paystack and Flutterwave, with instant receipts.</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3 rounded-xl border border-white/5 bg-white/5 p-4">
-                <Globe2 className="mt-1 text-primary" />
-                <div>
-                  <p className="font-semibold">In your language</p>
-                  <p className="text-sm text-slate-300">English, French, Hausa and Yorùbá, switchable from any page.</p>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="space-y-4 rounded-2xl border border-white/5 bg-gradient-to-br from-white/5 to-white/0 p-6">
-            <h3 className="text-lg font-semibold">Ready to onboard?</h3>
-            <p className="text-slate-300">Create your school, import students from CSV, invite your staff, and start collecting fees the same day.</p>
-            <Link href="/register" className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90">
+    <MarketingLayout>
+      <main>
+        {/* Hero */}
+        <section className="mx-auto max-w-5xl px-6 pb-20 pt-24 text-center md:px-8 md:pt-32">
+          <h1 className="mx-auto max-w-3xl animate-fade-up text-4xl font-semibold leading-[1.1] tracking-tight text-slate-900 md:text-6xl">
+            {t("landing.tagline")}
+          </h1>
+          <p className="mx-auto mt-8 max-w-2xl animate-fade-up text-lg leading-relaxed text-slate-500 delay-100 md:text-xl">
+            {t("landing.sub")}
+          </p>
+          <div className="mt-10 flex animate-fade-up flex-wrap justify-center gap-4 delay-200">
+            <Link
+              href="/register"
+              className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-7 py-3.5 text-sm font-medium text-white transition hover:bg-slate-700"
+            >
               {t("landing.cta.register")} <ArrowRight size={16} />
             </Link>
-            <p className="text-xs text-muted-foreground">
-              Need a hand migrating existing data? <Link href="/contact" className="underline">Talk to us</Link>.
+            <Link
+              href="/login"
+              className="inline-flex items-center gap-2 rounded-full px-7 py-3.5 text-sm font-medium text-slate-700 transition hover:text-slate-900"
+            >
+              {t("landing.cta.dashboard")}
+            </Link>
+          </div>
+          <p className="mt-6 animate-fade-up text-sm text-slate-400 delay-300">Free for up to 50 students. No card required.</p>
+
+          <div className="mt-20 animate-fade-up delay-300">
+            <DashboardMockup className="mx-auto max-w-4xl" />
+          </div>
+        </section>
+
+        {/* Quiet stats */}
+        <section className="mx-auto max-w-5xl px-6 pb-24 md:px-8">
+          <dl className="grid grid-cols-2 gap-10 border-t border-slate-100 pt-10 text-center md:grid-cols-4">
+            {[
+              ["4", "languages"],
+              ["2", "payment gateways"],
+              ["25+", "dashboard screens"],
+              ["1", "workspace per school"],
+            ].map(([n, label]) => (
+              <div key={label}>
+                <dt className="text-sm text-slate-400">{label}</dt>
+                <dd className="mt-1 font-display text-3xl font-semibold text-slate-900">{n}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+
+        {/* Features */}
+        <section id="features" className="section scroll-mt-20">
+          <div className="max-w-2xl">
+            <p className="eyebrow">Everything a school runs on</p>
+            <h2 className="mt-4 text-3xl font-semibold tracking-tight text-slate-900 md:text-4xl">One workspace, every department</h2>
+            <p className="mt-5 text-lg leading-relaxed text-slate-500">
+              Replace spreadsheets, chat threads and paper receipts with modules that already talk to each other.
             </p>
+          </div>
+          <ul className="mt-20 grid gap-x-12 gap-y-14 sm:grid-cols-2 lg:grid-cols-4">
+            {features.map(({ title, description, icon: Icon }) => (
+              <li key={title}>
+                <Icon size={22} className="text-primary" strokeWidth={1.75} />
+                <h3 className="mt-5 text-base font-semibold text-slate-900">{title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-slate-500">{description}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        {/* How it works */}
+        <section id="how" className="border-t border-slate-100">
+          <div className="section">
+            <div className="grid gap-16 lg:grid-cols-[1fr_1.1fr] lg:items-center">
+              <div>
+                <p className="eyebrow">How it works</p>
+                <h2 className="mt-4 text-3xl font-semibold tracking-tight text-slate-900 md:text-4xl">Live before the next term starts</h2>
+                <p className="mt-5 text-lg leading-relaxed text-slate-500">
+                  Most schools go from sign-up to collecting fees online in an afternoon. Need help migrating existing
+                  data?{" "}
+                  <Link href="/contact" className="text-slate-900 underline underline-offset-4">
+                    Talk to us
+                  </Link>
+                  .
+                </p>
+                <ol className="mt-14 space-y-10">
+                  {steps.map((s) => (
+                    <li key={s.n} className="flex gap-6">
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 font-display text-sm font-semibold text-slate-900">
+                        {s.n}
+                      </span>
+                      <div>
+                        <h3 className="font-semibold text-slate-900">{s.title}</h3>
+                        <p className="mt-1.5 text-sm leading-relaxed text-slate-500">{s.body}</p>
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+              <SchoolIllustration className="mx-auto max-w-lg" />
+            </div>
+          </div>
+        </section>
+
+        {/* Parent portal */}
+        <section id="parents" className="scroll-mt-20 border-t border-slate-100">
+          <div className="section">
+            <div className="grid items-center gap-16 lg:grid-cols-[1fr_1.1fr]">
+              <div className="order-2 flex justify-center lg:order-1">
+                <PhoneMockup className="animate-float-slow" />
+              </div>
+              <div className="order-1 lg:order-2">
+                <p className="eyebrow">For parents</p>
+                <h2 className="mt-4 text-3xl font-semibold tracking-tight text-slate-900 md:text-4xl">{t("landing.applyBanner.title")}</h2>
+                <p className="mt-5 text-lg leading-relaxed text-slate-500">{t("landing.applyBanner.body")}</p>
+                <ul className="mt-12 grid gap-8 sm:grid-cols-2">
+                  {[
+                    { icon: CalendarDays, title: "See every day", body: "Attendance, timetable and homework for each child." },
+                    { icon: BookMarked, title: "Results when published", body: "Download report cards the moment the school releases them." },
+                    { icon: CreditCard, title: "Pay fees online", body: "Card, bank transfer or USSD through Paystack and Flutterwave." },
+                    { icon: Globe2, title: "In your language", body: "English, French, Hausa and Yorùbá, switchable from any page." },
+                  ].map(({ icon: Icon, title, body }) => (
+                    <li key={title}>
+                      <Icon size={20} className="text-primary" strokeWidth={1.75} />
+                      <p className="mt-3 text-sm font-semibold text-slate-900">{title}</p>
+                      <p className="mt-1 text-sm leading-relaxed text-slate-500">{body}</p>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Roles */}
+        <section id="roles" className="border-t border-slate-100">
+          <div className="section">
+            <p className="eyebrow">Role-aware consoles</p>
+            <h2 className="mt-4 max-w-2xl text-3xl font-semibold tracking-tight text-slate-900 md:text-4xl">Everyone sees exactly what they need</h2>
+            <ul className="mt-16 grid gap-10 border-t border-slate-100 pt-10 sm:grid-cols-2 lg:grid-cols-4">
+              {roles.map((r) => (
+                <li key={r.title}>
+                  <h3 className="font-semibold text-slate-900">{r.title}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-slate-500">{r.body}</p>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+
+        {/* Plans */}
+        <section id="plans" className="scroll-mt-20 border-t border-slate-100">
+          <div className="section">
+            <div className="max-w-2xl">
+              <p className="eyebrow">Plans</p>
+              <h2 className="mt-4 text-3xl font-semibold tracking-tight text-slate-900 md:text-4xl">Start free, upgrade in-app</h2>
+              <p className="mt-5 text-lg leading-relaxed text-slate-500">
+                The free plan covers small schools. Larger plans unlock higher limits and are paid from inside the
+                dashboard with Paystack or Flutterwave.
+              </p>
+            </div>
+            <div className="mt-16 grid gap-12 md:grid-cols-3">
+              {plans.map((p) => (
+                <div key={p.name} className="border-t border-slate-200 pt-8">
+                  <p className="text-xs uppercase tracking-[0.2em] text-slate-400">{p.tag}</p>
+                  <h3 className="mt-2 font-display text-2xl font-semibold text-slate-900">{p.name}</h3>
+                  <ul className="mt-8 space-y-3 text-sm text-slate-600">
+                    {p.points.map((pt) => (
+                      <li key={pt} className="flex items-center gap-3">
+                        <Check size={15} className="text-primary" /> {pt}
+                      </li>
+                    ))}
+                  </ul>
+                  <Link href="/register" className="mt-10 inline-flex items-center gap-1.5 text-sm font-medium text-slate-900 hover:text-primary">
+                    {t("landing.cta.register")} <ArrowRight size={14} />
+                  </Link>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* CTA */}
+        <section className="border-t border-slate-100">
+          <div className="section text-center">
+            <h2 className="mx-auto max-w-2xl text-3xl font-semibold tracking-tight text-slate-900 md:text-4xl">
+              Create your school, import students, invite staff, collect fees the same day.
+            </h2>
+            <div className="mt-10 flex flex-wrap justify-center gap-4">
+              <Link
+                href="/register"
+                className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-7 py-3.5 text-sm font-medium text-white transition hover:bg-slate-700"
+              >
+                {t("landing.cta.register")} <ArrowRight size={16} />
+              </Link>
+              <Link href="/about" className="inline-flex items-center px-7 py-3.5 text-sm font-medium text-slate-700 hover:text-slate-900">
+                {t("landing.cta.about")}
+              </Link>
+            </div>
           </div>
         </section>
       </main>
-      <SiteFooter />
-    </div>
+    </MarketingLayout>
   );
 }

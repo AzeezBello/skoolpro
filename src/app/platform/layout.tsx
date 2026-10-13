@@ -3,8 +3,12 @@
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
+import { LogOut, ScrollText, School, ShieldAlert } from "lucide-react";
 import { authFetch } from "@/lib/client/authFetch";
 import { supabase } from "@/lib/supabaseClient";
+import { Logo, LogoMark } from "@/components/brand/Logo";
+import { Avatar } from "@/components/ui/avatar";
+import { cn } from "@/lib/utils";
 
 // Deliberately separate from the /dashboard layout: no OnboardingProvider,
 // no tour, no school-scoped Sidebar. This checks platform_admins via
@@ -47,59 +51,79 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
 
   if (status === "checking") {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-950 text-white">
-        <p className="text-sm text-gray-400">Checking access...</p>
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background text-muted-foreground" role="status">
+        <LogoMark size={44} className="animate-pulse" />
+        <p className="text-sm">Checking access...</p>
       </div>
     );
   }
 
   if (status === "denied") {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-950 text-white">
-        <div className="max-w-md rounded-xl border border-white/10 bg-gray-900 p-8 text-center">
+      <div className="flex min-h-screen items-center justify-center bg-background px-6 text-foreground">
+        <div className="max-w-md rounded-2xl border border-border bg-card p-8 text-center shadow-card">
+          <span className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-destructive/10 text-destructive">
+            <ShieldAlert size={26} />
+          </span>
           <h1 className="mb-2 text-xl font-semibold">Access restricted</h1>
-          <p className="text-sm text-gray-400">
+          <p className="text-sm text-muted-foreground">
             This area is for SkoolPro platform operators only. Your account doesn&apos;t have access.
           </p>
+          <Link href="/dashboard" className="mt-5 inline-flex text-sm font-semibold">
+            Go to the dashboard
+          </Link>
         </div>
       </div>
     );
   }
 
-  const navLink = (href: string, label: string) => (
-    <Link
-      href={href}
-      className={`rounded-md px-3 py-2 text-sm font-medium transition ${
-        pathname === href || pathname.startsWith(`${href}/`)
-          ? "bg-white/10 text-white"
-          : "text-gray-400 hover:text-white"
-      }`}
-    >
-      {label}
-    </Link>
-  );
+  const navLink = (href: string, label: string, Icon: typeof School) => {
+    const active = pathname === href || pathname.startsWith(`${href}/`);
+    return (
+      <Link
+        href={href}
+        className={cn(
+          "inline-flex items-center gap-2 rounded-full px-3.5 py-2 text-sm font-medium transition",
+          active ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground"
+        )}
+      >
+        <Icon size={15} /> {label}
+      </Link>
+    );
+  };
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
-      <header className="flex items-center justify-between border-b border-white/10 bg-gray-900/70 px-6 py-4">
-        <div className="flex items-center gap-6">
-          <span className="text-sm font-semibold uppercase tracking-[0.3em] text-amber-400">SkoolPro Platform</span>
-          <nav className="flex gap-1">
-            {navLink("/platform/schools", "Schools")}
-            {navLink("/platform/audit", "Audit Log")}
-          </nav>
+    <div className="app-shell min-h-screen bg-background text-foreground">
+      <header className="sticky top-0 z-30 border-b border-border/70 bg-background/80 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-3 md:px-6">
+          <div className="flex items-center gap-6">
+            <Link href="/platform/schools" className="text-foreground hover:text-foreground">
+              <Logo size={32} caption="Platform console" />
+            </Link>
+            <nav className="hidden items-center gap-1 sm:flex" aria-label="Platform">
+              {navLink("/platform/schools", "Schools", School)}
+              {navLink("/platform/audit", "Audit log", ScrollText)}
+            </nav>
+          </div>
+          <div className="flex items-center gap-3 text-sm">
+            <span className="hidden items-center gap-2 rounded-full border border-border bg-background/60 py-1 pl-1 pr-3 md:inline-flex">
+              <Avatar name={email || "?"} size={26} />
+              <span className="max-w-[200px] truncate text-muted-foreground">{email}</span>
+            </span>
+            <button
+              onClick={handleLogout}
+              className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-semibold transition hover:bg-shell-hover"
+            >
+              <LogOut size={13} /> Logout
+            </button>
+          </div>
         </div>
-        <div className="flex items-center gap-3 text-sm text-gray-300">
-          <span>{email}</span>
-          <button
-            onClick={handleLogout}
-            className="rounded-md bg-white/10 px-3 py-1.5 text-xs font-semibold transition hover:bg-white/20"
-          >
-            Logout
-          </button>
-        </div>
+        <nav className="flex gap-1 border-t border-border px-4 py-2 sm:hidden" aria-label="Platform mobile">
+          {navLink("/platform/schools", "Schools", School)}
+          {navLink("/platform/audit", "Audit log", ScrollText)}
+        </nav>
       </header>
-      <main className="mx-auto max-w-6xl px-6 py-8">{children}</main>
+      <main className="mx-auto max-w-6xl animate-fade-up px-6 py-12 md:px-8 md:py-16">{children}</main>
     </div>
   );
 }

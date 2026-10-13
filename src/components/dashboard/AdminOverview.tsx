@@ -1,14 +1,33 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
 import { Bar, Doughnut } from "react-chartjs-2";
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, ArcElement, Title, Tooltip, Legend } from "chart.js";
-import { Users, UserCheck, School, CalendarCheck, Wallet, AlertTriangle } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Users,
+  UserCheck,
+  School,
+  CalendarCheck,
+  Wallet,
+  AlertTriangle,
+  ArrowUpRight,
+  Receipt,
+  ClipboardList,
+  Megaphone,
+  GraduationCap,
+  CalendarDays,
+} from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { StatCard } from "@/components/ui/stat-card";
+import { PageHeader } from "@/components/ui/page-header";
+import { Skeleton } from "@/components/ui/skeleton";
 import { AnnouncementsPanel } from "@/components/dashboard/AnnouncementsPanel";
 import { useSchoolSettings } from "@/lib/hooks/useSchoolSettings";
+import { useCurrentProfile } from "@/lib/hooks/useCurrentProfile";
+import { useTheme } from "@/lib/hooks/useTheme";
 import { formatMoney } from "@/lib/money";
 import { useT } from "@/components/i18n/LocaleProvider";
 
@@ -24,8 +43,24 @@ type Metrics = {
   collectedThisMonth: number;
 };
 
+const quickActions = [
+  { href: "/dashboard/invoices", label: "Issue invoices", icon: Receipt },
+  { href: "/dashboard/attendance", label: "Take attendance", icon: CalendarDays },
+  { href: "/dashboard/results", label: "Enter results", icon: ClipboardList },
+  { href: "/dashboard/students", label: "Add students", icon: GraduationCap },
+  { href: "/dashboard/announcements", label: "Post announcement", icon: Megaphone },
+];
+
+function greetingKey(hour: number): "topbar.greeting.morning" | "topbar.greeting.afternoon" | "topbar.greeting.evening" {
+  if (hour < 12) return "topbar.greeting.morning";
+  if (hour < 17) return "topbar.greeting.afternoon";
+  return "topbar.greeting.evening";
+}
+
 export function AdminOverview() {
   const { t } = useT();
+  const { dark } = useTheme();
+  const { profile } = useCurrentProfile();
   const [metrics, setMetrics] = useState<Metrics>({
     students: 0,
     teachers: 0,
@@ -117,92 +152,180 @@ export function AdminOverview() {
     }
   };
 
+  // Chart.js paints to a canvas, so CSS variables can't be used directly;
+  // pick palette values that match the active theme instead.
+  const palette = useMemo(
+    () => ({
+      text: dark ? "#94a3b8" : "#64748b",
+      grid: dark ? "rgba(148,163,184,0.12)" : "rgba(100,116,139,0.14)",
+      bar: dark ? "#34d399" : "#10b981",
+      barHover: dark ? "#6ee7b7" : "#059669",
+      status: {
+        pending: dark ? "#fbbf24" : "#f59e0b",
+        partial: dark ? "#60a5fa" : "#3b82f6",
+        paid: dark ? "#34d399" : "#10b981",
+        overdue: dark ? "#fb7185" : "#ef4444",
+        cancelled: dark ? "#64748b" : "#94a3b8",
+      } as Record<string, string>,
+    }),
+    [dark]
+  );
+
   const performanceChart = {
     labels: performanceData.map((p) => p.subject),
-    datasets: [{ label: "Average score", data: performanceData.map((p) => p.avg), backgroundColor: "#3b82f6" }],
+    datasets: [
+      {
+        label: "Average score",
+        data: performanceData.map((p) => p.avg),
+        backgroundColor: palette.bar,
+        hoverBackgroundColor: palette.barHover,
+        borderRadius: 6,
+        maxBarThickness: 36,
+      },
+    ],
+  };
+
+  const performanceOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      y: { min: 0, max: 100, grid: { color: palette.grid }, ticks: { color: palette.text }, border: { display: false } },
+      x: { grid: { display: false }, ticks: { color: palette.text }, border: { display: false } },
+    },
   };
 
   const statusLabels = ["pending", "partial", "paid", "overdue", "cancelled"].filter((s) => statusBreakdown[s]);
-  const statusColors: Record<string, string> = { pending: "#f59e0b", partial: "#3b82f6", paid: "#22c55e", overdue: "#ef4444", cancelled: "#6b7280" };
   const invoiceChart = {
     labels: statusLabels,
-    datasets: [{ data: statusLabels.map((s) => statusBreakdown[s]), backgroundColor: statusLabels.map((s) => statusColors[s]) }],
+    datasets: [
+      {
+        data: statusLabels.map((s) => statusBreakdown[s]),
+        backgroundColor: statusLabels.map((s) => palette.status[s]),
+        borderWidth: 0,
+        hoverOffset: 6,
+      },
+    ],
   };
 
-  return (
-    <main className="space-y-8 p-2 md:p-4">
-      <header>
-        <p className="text-sm uppercase tracking-[0.3em] text-primary">Analytics</p>
-        <h1 className="text-3xl font-semibold">{t("page.overview.title")}</h1>
-        <p className="text-muted-foreground">{t("page.overview.subtitle")}</p>
-      </header>
+  const invoiceOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    cutout: "68%",
+    plugins: { legend: { position: "bottom" as const, labels: { color: palette.text, usePointStyle: true, boxWidth: 8 } } },
+  };
 
-      {error && <p className="text-sm text-red-400">{error}</p>}
+  const firstName = (profile?.fullName || "").split(" ")[0];
+  const today = new Date().toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" });
+
+  return (
+    <main className="space-y-12">
+      <PageHeader eyebrow="Analytics" title={t("page.overview.title")} description={t("page.overview.subtitle")} />
+
+      {/* Welcome banner */}
+      <section className="border-y border-border/70 py-8">
+        <div className="flex flex-col gap-8 md:flex-row md:items-end md:justify-between">
+          <div className="space-y-2">
+            <p className="text-sm text-muted-foreground">{today}</p>
+            <h2 className="text-2xl font-semibold md:text-3xl">
+              {t(greetingKey(new Date().getHours()))}
+              {firstName ? `, ${firstName}` : ""}
+            </h2>
+            <p className="text-muted-foreground">{t("overview.welcome", { school: settings.name })}</p>
+          </div>
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">{t("overview.quickActions")}</p>
+            <div className="flex flex-wrap gap-2">
+              {quickActions.map(({ href, label, icon: Icon }) => (
+                <Link
+                  key={href}
+                  href={href}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-border px-3.5 py-1.5 text-xs font-medium text-foreground transition hover:border-foreground"
+                >
+                  <Icon size={13} /> {label}
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {error && (
+        <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive" role="alert">
+          {error}
+        </p>
+      )}
 
       <AnnouncementsPanel />
 
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
-        <MetricCard title="Active Students" value={metrics.students} icon={<Users size={24} />} />
-        <MetricCard title="Teachers" value={metrics.teachers} icon={<UserCheck size={24} />} />
-        <MetricCard title="Classes" value={metrics.classes} icon={<School size={24} />} />
-        <MetricCard title="Attendance (30d)" value={metrics.attendanceRate === null ? "—" : `${metrics.attendanceRate}%`} icon={<CalendarCheck size={24} />} />
-        <MetricCard title="Collected this month" value={formatMoney(metrics.collectedThisMonth, settings.currency)} icon={<Wallet size={24} />} />
-        <MetricCard
-          title="Outstanding fees"
+      <div className="grid grid-cols-2 gap-5 md:grid-cols-3 xl:grid-cols-6">
+        <StatCard label="Active students" value={metrics.students.toLocaleString()} icon={<Users size={18} />} loading={loading} />
+        <StatCard label="Teachers" value={metrics.teachers.toLocaleString()} icon={<UserCheck size={18} />} tone="info" loading={loading} />
+        <StatCard label="Classes" value={metrics.classes.toLocaleString()} icon={<School size={18} />} tone="neutral" loading={loading} />
+        <StatCard
+          label="Attendance (30d)"
+          value={metrics.attendanceRate === null ? "—" : `${metrics.attendanceRate}%`}
+          icon={<CalendarCheck size={18} />}
+          loading={loading}
+        />
+        <StatCard label="Collected this month" value={formatMoney(metrics.collectedThisMonth, settings.currency)} icon={<Wallet size={18} />} loading={loading} />
+        <StatCard
+          label="Outstanding fees"
           value={formatMoney(metrics.outstanding, settings.currency)}
-          hint={metrics.overdueCount ? `${metrics.overdueCount} overdue` : undefined}
-          icon={<AlertTriangle size={24} />}
+          hint={metrics.overdueCount ? <span className="font-medium text-warning">{metrics.overdueCount} overdue</span> : undefined}
+          icon={<AlertTriangle size={18} />}
+          tone={metrics.overdueCount ? "warning" : "neutral"}
+          loading={loading}
         />
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Average score by subject</CardTitle>
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-5">
+        <Card className="lg:col-span-3">
+          <CardHeader className="flex flex-row items-start justify-between">
+            <div>
+              <CardTitle>Average score by subject</CardTitle>
+              <CardDescription className="mt-1">Top 12 subjects across all entered results.</CardDescription>
+            </div>
+            <Link href="/dashboard/reports/grades" className="inline-flex items-center gap-1 text-xs font-semibold">
+              Report <ArrowUpRight size={14} />
+            </Link>
           </CardHeader>
           <CardContent>
             {loading ? (
-              <p className="text-sm text-muted-foreground">Loading...</p>
+              <Skeleton className="h-72 w-full" />
             ) : performanceData.length === 0 ? (
-              <EmptyState title="No results yet" description="Averages appear once teachers enter CA and exam scores." />
+              <EmptyState illustration="chart" title="No results yet" description="Averages appear once teachers enter CA and exam scores." />
             ) : (
-              <Bar data={performanceChart} options={{ scales: { y: { min: 0, max: 100 } } }} />
+              <div className="h-72">
+                <Bar data={performanceChart} options={performanceOptions} />
+              </div>
             )}
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Invoices by status</CardTitle>
+        <Card className="lg:col-span-2">
+          <CardHeader className="flex flex-row items-start justify-between">
+            <div>
+              <CardTitle>Invoices by status</CardTitle>
+              <CardDescription className="mt-1">All invoices issued to date.</CardDescription>
+            </div>
+            <Link href="/dashboard/reports/fees" className="inline-flex items-center gap-1 text-xs font-semibold">
+              Arrears <ArrowUpRight size={14} />
+            </Link>
           </CardHeader>
           <CardContent>
             {loading ? (
-              <p className="text-sm text-muted-foreground">Loading...</p>
+              <Skeleton className="h-72 w-full" />
             ) : statusLabels.length === 0 ? (
-              <EmptyState title="No invoices yet" description="Create invoices from the Invoices page." />
+              <EmptyState illustration="inbox" title="No invoices yet" description="Create invoices from the Invoices page." />
             ) : (
-              <div className="mx-auto max-w-xs">
-                <Doughnut data={invoiceChart} />
+              <div className="h-72">
+                <Doughnut data={invoiceChart} options={invoiceOptions} />
               </div>
             )}
           </CardContent>
         </Card>
       </div>
     </main>
-  );
-}
-
-function MetricCard({ title, value, icon, hint }: { title: string; value: string | number; icon: React.ReactNode; hint?: string }) {
-  return (
-    <Card className="bg-card/80">
-      <CardContent className="flex flex-col gap-2 pt-5">
-        <div className="flex items-center justify-between">
-          <p className="text-xs text-muted-foreground">{title}</p>
-          <div className="rounded-full bg-primary/15 p-2 text-primary">{icon}</div>
-        </div>
-        <p className="text-2xl font-semibold">{value}</p>
-        {hint && <p className="text-xs text-amber-400">{hint}</p>}
-      </CardContent>
-    </Card>
   );
 }

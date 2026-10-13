@@ -1,94 +1,99 @@
-import { Mail, Phone, MapPin, Send } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Send } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { SiteHeader } from "@/components/SiteHeader";
-import { SiteFooter } from "@/components/SiteFooter";
+import { MarketingLayout } from "@/components/marketing/MarketingLayout";
+
+export const metadata = { title: "Contact" };
+
+const support = [
+  { title: "Data import", body: "Students, classes, fee items and open invoices from CSV or Excel." },
+  { title: "Payment gateway setup", body: "Paystack and Flutterwave keys, live webhooks and test transactions." },
+  { title: "Staff onboarding", body: "Hands-on training for admins and teachers, plus a guided in-app tour." },
+];
 
 export default function ContactPage() {
   return (
-    <div className="dark force-dark min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-gray-900 text-white">
-      <SiteHeader />
-      <main className="mx-auto flex max-w-5xl flex-col gap-10 px-6 py-16">
-        <section className="rounded-3xl border border-white/10 bg-slate-950/60 p-10 shadow-soft ring-1 ring-white/10">
-          <p className="text-sm uppercase tracking-[0.3em] text-primary">Get in touch</p>
-          <h1 className="mt-2 text-4xl font-semibold">We’re here to help you ship a calmer school day.</h1>
-          <p className="mt-4 max-w-3xl text-lg text-slate-300">
-            Tell us about your school’s size, billing setup, and timelines. We’ll get back within one business day with next steps.
-          </p>
-        </section>
+    <MarketingLayout>
+      <main className="section">
+        <div className="grid gap-20 lg:grid-cols-[1fr_1.1fr]">
+          <div>
+            <p className="eyebrow">Get in touch</p>
+            <h1 className="mt-4 text-4xl font-semibold leading-tight tracking-tight text-slate-900 md:text-5xl">We reply within one business day.</h1>
+            <p className="mt-6 text-lg leading-relaxed text-slate-500">
+              Tell us about your school’s size, billing setup and timelines, and we’ll come back with next steps.
+            </p>
 
-        <div className="grid gap-6 md:grid-cols-2">
-          <Card className="border-white/10 bg-card/80">
-            <CardHeader>
-              <CardTitle>Send a message</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+            <dl className="mt-14 space-y-6 text-sm">
+              <div>
+                <dt className="text-slate-400">Email</dt>
+                <dd className="mt-1">
+                  <a href="mailto:support@skoolpro.app" className="text-slate-900 hover:text-primary">
+                    support@skoolpro.app
+                  </a>
+                </dd>
+              </div>
+              <div>
+                <dt className="text-slate-400">Phone</dt>
+                <dd className="mt-1 text-slate-900">+234 (0) 800 000 0000</dd>
+              </div>
+              <div>
+                <dt className="text-slate-400">Hours</dt>
+                <dd className="mt-1 text-slate-900">Mon to Fri, 9:00 to 17:00 WAT</dd>
+              </div>
+              <div>
+                <dt className="text-slate-400">Office</dt>
+                <dd className="mt-1 text-slate-900">Remote-first across Nigeria; Lagos HQ by appointment.</dd>
+              </div>
+            </dl>
+
+            <div className="mt-14 border-t border-slate-100 pt-10">
+              <p className="text-sm font-semibold text-slate-900">Implementation support</p>
+              <ul className="mt-6 space-y-5">
+                {support.map((s) => (
+                  <li key={s.title}>
+                    <p className="text-sm font-medium text-slate-900">{s.title}</p>
+                    <p className="mt-1 text-sm leading-relaxed text-slate-500">{s.body}</p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
+          <form action="mailto:support@skoolpro.app" method="get" encType="text/plain" className="space-y-7 lg:pt-16">
+            <div className="grid gap-7 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="name">Your name</Label>
-                <Input id="name" placeholder="Ada Lovelace" />
+                <Input id="name" name="name" placeholder="Ada Lovelace" />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="email">Work email</Label>
-                <Input id="email" type="email" placeholder="you@school.com" />
+                <Label htmlFor="school">School / organisation</Label>
+                <Input id="school" name="school" placeholder="Bright Future Academy" />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="school">School / Organization</Label>
-                <Input id="school" placeholder="SkoolPro Academy" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="message">What do you need?</Label>
-                <textarea
-                  id="message"
-                  rows={4}
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                  placeholder="We’d like to import 500 students and start collecting term fees..."
-                />
-              </div>
-              <Button className="w-full">
-                Send message
-                <Send size={16} className="ml-2" />
-              </Button>
-              <p className="text-xs text-muted-foreground">Prefer email? Reach us at support@skoolpro.app.</p>
-            </CardContent>
-          </Card>
-
-          <div className="space-y-4">
-            <Card className="border-white/10 bg-card/80">
-              <CardHeader>
-                <CardTitle>Contact details</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 text-sm text-slate-300">
-                <div className="flex items-center gap-3">
-                  <Mail className="text-primary" size={18} />
-                  support@skoolpro.app
-                </div>
-                <div className="flex items-center gap-3">
-                  <Phone className="text-primary" size={18} />
-                  +234 (0) 800 000 0000
-                </div>
-                <div className="flex items-center gap-3">
-                  <MapPin className="text-primary" size={18} />
-                  Remote-first across Nigeria; Lagos HQ by appointment.
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-white/10 bg-gradient-to-br from-white/5 to-white/0">
-              <CardHeader>
-                <CardTitle>Implementation support</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2 text-sm text-slate-300">
-                <p>• Data import for students, classes, and invoices</p>
-                <p>• Payment gateway setup with live webhooks</p>
-                <p>• Staff onboarding and best practices</p>
-              </CardContent>
-            </Card>
-          </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="subject">Subject</Label>
+              <Input id="subject" name="subject" placeholder="Onboarding 500 students for next term" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="body">What do you need?</Label>
+              <textarea
+                id="body"
+                name="body"
+                rows={6}
+                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground"
+                placeholder="We’d like to import 500 students and start collecting term fees..."
+              />
+            </div>
+            <button
+              type="submit"
+              className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-7 py-3.5 text-sm font-medium text-white transition hover:bg-slate-700"
+            >
+              Send message <Send size={15} />
+            </button>
+            <p className="text-xs text-slate-400">Opens in your email app, addressed to our support inbox.</p>
+          </form>
         </div>
       </main>
-      <SiteFooter />
-    </div>
+    </MarketingLayout>
   );
 }

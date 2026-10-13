@@ -7,8 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { SiteHeader } from "@/components/SiteHeader";
-import { SiteFooter } from "@/components/SiteFooter";
+import { MarketingLayout } from "@/components/marketing/MarketingLayout";
 
 type Info = { school: { name: string; logo_url: string | null; admissions_open: boolean }; classes: Array<{ id: string; name: string }> };
 
@@ -49,13 +48,12 @@ export default function ApplyPage() {
   const field = (key: keyof typeof form) => ({ value: form[key], onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => setForm({ ...form, [key]: e.target.value }) });
 
   return (
-    <div className="dark force-dark min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-gray-900 text-white">
-      <SiteHeader />
-      <main className="mx-auto max-w-2xl px-4 py-12">
+    <MarketingLayout>
+      <main className="mx-auto max-w-2xl px-6 py-20 md:py-28">
         {notFound ? (
-          <p className="text-center text-muted-foreground">We couldn&apos;t find that school.</p>
+          <p className="text-center text-slate-500">We couldn&apos;t find that school.</p>
         ) : !info ? (
-          <p className="text-center text-muted-foreground">Loading…</p>
+          <p className="text-center text-slate-500">Loading…</p>
         ) : reference ? (
           <Card>
             <CardHeader>
@@ -109,7 +107,6 @@ export default function ApplyPage() {
           </Card>
         )}
       </main>
-      <SiteFooter />
-    </div>
+    </MarketingLayout>
   );
 }
